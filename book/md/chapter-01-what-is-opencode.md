@@ -1,0 +1,214 @@
+# Chapter 1: What is OpenCode?
+
+> *"The open source AI coding agent."*
+
+---
+
+## Introduction
+
+OpenCode is a terminal-first AI coding agent that gives large language models the ability to read, write, search, and execute code on your behalf. Unlike IDE-embedded copilots that suggest inline completions, OpenCode operates as a full agentic loop: it receives a natural-language prompt, plans its approach, executes multi-step tool calls, and iterates until the task is done — or it asks you a question.
+
+### What You'll Learn
+
+- What separates an AI coding *agent* from an AI coding *assistant*
+- OpenCode's design philosophy: open source, provider-agnostic, terminal-native
+- The client-server architecture that decouples the UI from the engine
+- How the project positions itself in the landscape (contrast with Claude Code, Cursor, Copilot)
+
+### Prerequisites
+
+- Comfortable reading TypeScript
+- Basic familiarity with LLM concepts (tokens, context windows, tool calling)
+- Experience with terminal-based developer tooling
+
+---
+
+## Notes & Key Points
+
+### 1.1 Agent vs. Assistant
+
+- **Assistants** respond to a single prompt; **agents** loop: prompt → plan → act → observe → continue
+- OpenCode implements a multi-step agentic loop in `session/prompt.ts` — the `loop()` function runs until the model emits a finish reason that is not `tool-calls`
+- Key insight: the model's finish reason drives continuation logic
+
+### 1.2 Design Philosophy
+
+- **Provider-agnostic**: supports 20+ AI providers through the Vercel AI SDK
+- **Open source**: MIT licensed, full source visibility
+- **Terminal-native**: built by Neovim users; the TUI is a first-class citizen
+- **Client-server**: the agent engine runs as an HTTP server (Hono), any client (TUI, web, mobile) can drive it via the OpenCode SDK
+- **LSP-aware**: out-of-the-box Language Server Protocol support for diagnostics
+
+### 1.3 Architecture at 10,000 Feet
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     CLI / TUI / Web                      │
+│                    (opencode-ai/sdk)                      │
+└──────────────────────┬──────────────────────────────────┘
+                       │ HTTP / in-process fetch
+┌──────────────────────▼──────────────────────────────────┐
+│                   Hono HTTP Server                        │
+│         (server/server.ts — routes, OpenAPI)              │
+├─────────────────────────────────────────────────────────┤
+│ Session Layer   │ Agent Layer   │ Provider Layer          │
+│ (session/*.ts)  │ (agent.ts)    │ (provider/provider.ts)  │
+├─────────────────┴───────────────┴───────────────────────┤
+│            Tool Registry  (tool/registry.ts)             │
+│   bash · read · write · edit · grep · glob · webfetch …  │
+├─────────────────────────────────────────────────────────┤
+│          Permission · Bus · Snapshot · MCP · LSP          │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 1.4 How OpenCode Differs from Claude Code
+
+Directly from the README:
+- 100% open source
+- Not coupled to any single provider
+- Out-of-the-box LSP support
+- TUI focus (Ink-based terminal rendering)
+- Client-server architecture enabling remote operation
+
+### 1.5 The User Experience vs. What Happens Inside
+
+To understand why the codebase is structured the way it is, it helps to contrast what the *user* experiences with what the *engine* does behind the scenes.
+
+**What the user sees** (terminal output):
+
+```
+$ opencode
+> Build a React component that renders a sortable table
+
+⟳ Reading project structure...
+⟳ Reading src/components/Table.tsx
+⟳ Writing src/components/SortableTable.tsx
+⟳ Running: npm run typecheck
+⟳ Edit src/components/SortableTable.tsx (fixing type error)
+⟳ Running: npm run typecheck
+✓ Done — created src/components/SortableTable.tsx
+```
+
+The user types one sentence and watches a stream of status updates scroll past. It looks almost trivially simple — but behind those seven lines, the entire system activates:
+
+**What the engine does** (abbreviated trace):
+
+1. **CLI** (`src/index.ts`) — parses the command, invokes the `tui` or `run` handler
+2. **Bootstrap** (`cli/bootstrap.ts`) — discovers the project root, detects git, opens the SQLite database, starts the HTTP server
+3. **Session** (`session/index.ts`) — creates a session record with a unique ID, persists it to SQLite
+4. **Prompt** (`session/prompt.ts`) — stores the user message, resolves attached files, enters the agentic loop
+5. **System prompt** (`session/system.ts`) — assembles the model's instructions: base rules, project context, tool list, skill docs
+6. **Agent resolution** (`agent/agent.ts`) — loads the `build` agent with its model, permissions, and tool set
+7. **LLM bridge** (`session/llm.ts`) — calls `streamText()` from the AI SDK with all the assembled options
+8. **Stream processing** (`session/processor.ts`) — consumes the token stream, detects tool calls, emits bus events
+9. **Tool execution** (`tool/*.ts`) — runs each tool (read, write, bash) through the permission system
+10. **Loop iteration** — the `loop()` function detects `finishReason === "tool-calls"` and calls the LLM again
+11. **Verification** — the model calls `bash` to run the type checker, reads the output, makes corrections
+12. **Compaction** (if needed, `session/compaction.ts`) — summarizes earlier messages when the context window fills
+13. **Completion** — the model returns `finishReason === "stop"` and the loop exits
+
+Steps 7–11 repeat multiple times. What the user experiences as "a few status lines" is often 3–8 full round trips to the LLM, each with hundreds of tool calls in between.
+
+### 1.6 A Prompt's Journey Through Every Layer
+
+The following diagram traces a single user prompt from entry to exit, showing every major subsystem it touches. This is the roadmap for the rest of the book — each numbered step corresponds to one or more chapters.
+
+```
+User Input
+    │
+    ▼
+┌────────────────────┐    Ch 4
+│ CLI Entry (yargs)  │──────────────────────────────────────────┐
+└────────┬───────────┘                                          │
+         ▼                                                      │
+┌────────────────────┐    Ch 5                                  │
+│ Bootstrap          │    · project discovery                   │
+│                    │    · database init                       │
+│                    │    · server start                        │
+└────────┬───────────┘                                          │
+         ▼                                                      │
+┌────────────────────┐    Ch 6, 11                              │
+│ Config + Agent     │    · load opencode.json                  │
+│ Resolution         │    · resolve build agent                 │
+│                    │    · merge permissions                   │
+└────────┬───────────┘                                          │
+         ▼                                                      │
+┌────────────────────┐    Ch 14                                 │
+│ Prompt Ingestion   │    · parse user text                     │
+│                    │    · resolve @file references             │
+│                    │    · store user message                  │
+└────────┬───────────┘                                          │
+         ▼                                                      │
+┌────────────────────────────────────────────┐                  │
+│           AGENTIC LOOP (Ch 18)             │                  │
+│  ┌──────────────────────────────────────┐  │                  │
+│  │ System Prompt Assembly (Ch 15)       │  │                  │
+│  │  · base rules + tools + environment │  │                  │
+│  └──────────┬───────────────────────────┘  │                  │
+│             ▼                              │                  │
+│  ┌──────────────────────────────────────┐  │                  │
+│  │ LLM Call (Ch 8, 9, 16)              │  │                  │
+│  │  · provider → model → streamText()  │  │                  │
+│  └──────────┬───────────────────────────┘  │                  │
+│             ▼                              │                  │
+│  ┌──────────────────────────────────────┐  │                  │
+│  │ Stream Processing (Ch 17)           │  │                  │
+│  │  · tokens → parts → bus events      │  │                  │
+│  └──────────┬───────────────────────────┘  │                  │
+│             ▼                              │                  │
+│  ┌──────────────────────────────────────┐  │                  │
+│  │ Tool Execution (Ch 19–24)           │  │                  │
+│  │  · permission check (Ch 25)         │  │                  │
+│  │  · run tool → return result         │  │                  │
+│  │  · snapshot file changes (Ch 27)    │  │                  │
+│  └──────────┬───────────────────────────┘  │                  │
+│             ▼                              │                  │
+│  finishReason === "tool-calls"? ──Yes──▶ LOOP │              │
+│             │ No                           │                  │
+│             ▼                              │                  │
+│  Compaction needed? (Ch 28) ──Yes──▶ LOOP  │                 │
+│             │ No                           │                  │
+│             ▼                              │                  │
+│          EXIT LOOP                         │                  │
+└────────────────────────────────────────────┘                  │
+         │                                                      │
+         ▼                                                      │
+┌────────────────────┐    Ch 12, 13                             │
+│ Session Persist    │    · store assistant message             │
+│                    │    · update session title                │
+└────────┬───────────┘                                          │
+         ▼                                                      │
+┌────────────────────┐    Ch 26, 31–33                          │
+│ Bus → Client       │    · SSE events → TUI/web/SDK           │
+└────────────────────┘                                          │
+```
+
+Every box in this diagram is a chapter in this book. By the time you reach the final chapter you'll have traced a prompt from the user's keystroke all the way to the model's response and back.
+
+---
+
+## Questions for Expansion
+
+- [x] Include a concrete before/after comparison: what does the user experience look like vs. what happens inside?
+- [x] Diagram: a single prompt's journey through all layers
+- [ ] Timeline: key milestones in the project's development
+
+---
+
+## Source File Map
+
+| Concept | Primary File(s) |
+|---------|-----------------|
+| Entry point | `packages/opencode/src/index.ts` |
+| Server | `packages/opencode/src/server/server.ts` |
+| Agentic loop | `packages/opencode/src/session/prompt.ts` |
+| Agent definitions | `packages/opencode/src/agent/agent.ts` |
+| Provider layer | `packages/opencode/src/provider/provider.ts` |
+
+---
+
+## Questions for Expansion
+
+- [x] Include a concrete before/after comparison: what does the user experience look like vs. what happens inside?
+- [x] Diagram: a single prompt's journey through all layers
+- [ ] Timeline: key milestones in the project's development
