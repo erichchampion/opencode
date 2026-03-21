@@ -1,43 +1,103 @@
-# Chapter 33: The SDK — Programmatic Access
+# Chapter 33: The JavaScript SDK -- Programmatic Access
+
+> *"The SDK is the API's best friend."*
 
 ---
 
-## Notes & Key Points
+## 33.1 Overview
 
-### 33.1 SDK Package
+The JavaScript SDK (`packages/sdk/js/`) provides a typed client library for programmatic interaction with the OpenCode server. It's used by external tools, editor extensions, and custom integrations to create sessions, send prompts, and subscribe to events.
 
-`packages/sdk/js/` provides a typed TypeScript SDK for programmatic access:
-- Generated from the OpenAPI spec (auto-generated from Hono routes)
-- `createOpencodeClient({ baseUrl, fetch })` — creates a typed client
+---
 
-### 33.2 SDK Capabilities
+## 33.2 Client Creation
 
 ```typescript
-const sdk = createOpencodeClient({ baseUrl: "http://localhost:4096" })
+import { createClient } from "@opencode-ai/sdk"
 
-// Session management
-await sdk.session.create({})
-await sdk.session.prompt({ sessionID, parts: [{ type: "text", text: "..." }] })
-await sdk.session.cancel({ sessionID })
-
-// Events
-sdk.event.subscribe(["session.updated", "message.part.updated"], handler)
-
-// Provider info
-await sdk.provider.list()
-await sdk.provider.model.list()
+const client = createClient({ url: "http://localhost:3000" })
 ```
 
-### 33.3 In-Process vs. Remote
+The client function returns an object with typed methods for every API endpoint. These types are generated from OpenCode's Zod schemas, ensuring the SDK stays in sync with the server.
 
-The SDK can connect to:
-- **In-process** — via custom `fetch` that calls `app.fetch()` directly (zero-latency)
-- **Remote** — via HTTP to a running `opencode serve` instance
-- Same API, same types, different transport
+---
 
-### 33.4 SDK Generation
+## 33.3 Core Operations
 
-Run `./packages/sdk/js/script/build.ts` to regenerate from OpenAPI spec.
+```typescript
+// Create a session
+const session = await client.session.create({})
+
+// Send a prompt
+const response = await client.session.prompt({
+  sessionID: session.id,
+  parts: [{ type: "text", text: "Create a hello world app" }],
+})
+
+// List sessions
+const sessions = await client.session.list({})
+
+// Subscribe to events (SSE)
+const unsubscribe = client.event.subscribe((event) => {
+  if (event.type === "message.part.delta") {
+    process.stdout.write(event.data.delta)
+  }
+})
+```
+
+---
+
+## 33.4 Event Subscription
+
+The SDK wraps the SSE endpoint in a typed event emitter:
+
+```typescript
+client.event.subscribe((event) => {
+  switch (event.type) {
+    case "session.updated":
+      // event.data: { info: Session.Info }
+      break
+    case "message.part.delta":
+      // event.data: { sessionID, messageID, partID, field, delta }
+      break
+    case "permission.asked":
+      // event.data: Permission.Request
+      break
+  }
+})
+```
+
+The event types are discriminated unions -- TypeScript's type narrowing works with the `switch` statement.
+
+---
+
+## 33.5 SDK Generation
+
+The SDK is generated from OpenCode's server route definitions:
+
+```bash
+./packages/sdk/js/script/build.ts
+```
+
+This script:
+1. Extracts Zod schemas from all API routes
+2. Converts them to TypeScript types
+3. Generates typed client methods for each endpoint
+4. Outputs the SDK package to `packages/sdk/js/src/`
+
+This ensures the SDK always matches the server's API surface.
+
+---
+
+## 33.6 Use Cases
+
+| Use Case | Pattern |
+|----------|---------|
+| Editor extension | Create session, send prompt, subscribe to events for real-time display |
+| CI/CD pipeline | Create session, send prompt with `noReply: false`, read final response |
+| Custom TUI | Subscribe to all events, render custom interface |
+| Batch processing | Create multiple sessions, send prompts in parallel |
+| Permission automation | Subscribe to `permission.asked`, auto-reply based on rules |
 
 ---
 
@@ -45,21 +105,15 @@ Run `./packages/sdk/js/script/build.ts` to regenerate from OpenAPI spec.
 
 | Concept | File |
 |---------|------|
-| SDK source | `packages/sdk/js/` |
-| Build script | `packages/sdk/js/script/build.ts` |
-| OpenAPI spec | Generated via `Server.openapi()` |
+| SDK source | `packages/sdk/js/src/` |
+| SDK build script | `packages/sdk/js/script/build.ts` |
 
 ---
 
-## 🧪 Test References
-
-The SDK is tested indirectly through the server API tests, which validate the same HTTP endpoints the SDK calls:
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/server/session-list.test.ts` | 90 | Session listing API — the endpoint backing `sdk.session.list()` |
-| `test/server/session-select.test.ts` | 78 | Session retrieval API — backing `sdk.session.get()` |
-| `test/server/session-messages.test.ts` | 119 | Message retrieval API — backing `sdk.session.messages()` |
-| `test/server/global-session-list.test.ts` | 89 | Cross-project session listing |
-| `test/server/project-init-git.test.ts` | 121 | Project initialization API |
-| `test/control-plane/session-proxy-middleware.test.ts` | 159 | Session proxy routing — how the SDK connects to workspace servers |
+| `test/server/session-list.test.ts` | 90 | SDK-style session listing via the HTTP API |
+| `test/server/session-select.test.ts` | 78 | SDK-style session retrieval |
+| `test/server/session-messages.test.ts` | 119 | SDK-style message retrieval with pagination |

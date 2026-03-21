@@ -1,33 +1,93 @@
-# Chapter 31: The Terminal UI (TUI) — Ink, Rendering, and Interaction
+# Chapter 31: The TUI -- Terminal User Interface
+
+> *"The interface IS the product."*
 
 ---
 
-## Notes & Key Points
+## 31.1 Overview
 
-### 31.1 Technology
+OpenCode's TUI (`cli/cmd/tui/`) is built with Ink -- a React-like framework for terminal interfaces. It renders conversation threads, permission prompts, tool output, and status indicators in real-time using a component model.
 
-The TUI is built with **Ink** — a React-like framework for building CLIs:
-- Located in `packages/app/` (web app) and the `cli/tui/` directory
-- Components rendered to the terminal
-- Full keyboard navigation
+---
 
-### 31.2 TUI Features
+## 31.2 Architecture
 
-- Session list with fuzzy search
-- Real-time streaming of model responses
-- Tool call visualization with expandable details
-- Permission prompts
-- Agent switching (Tab key)
-- Model switching
-- Session forking and management
-- Markdown rendering in the terminal
+```
+TUI Process
+  |-- App component (root)
+  |     |-- Chat component (main conversation view)
+  |     |     |-- Thread (message rendering)
+  |     |     |-- Input (user text input)
+  |     |     |-- StatusBar (model, tokens, cost)
+  |     |     |-- PermissionOverlay (approve/deny prompts)
+  |     |
+  |     |-- Sidebar (session list, optional)
+  |     |-- Toast (notifications)
+  |
+  |-- Event subscriptions (Bus -> state updates -> re-renders)
+```
 
-### 31.3 Connection to the Engine
+The TUI subscribes to bus events for real-time updates:
+- `MessageV2.Event.PartDelta` -- character-by-character text streaming
+- `MessageV2.Event.PartUpdated` -- tool state transitions (pending -> running -> completed)
+- `Session.Event.Updated` -- session metadata changes (title, cost)
+- `Permission.Event.Asked` -- triggers the permission overlay
 
-The TUI is just another client:
-- Creates an SDK client pointing at the in-process server (or remote server)
-- Subscribes to SSE events for real-time updates
-- Sends prompts via the same API as the CLI
+---
+
+## 31.3 Thread Rendering
+
+The `Thread` component renders messages and their parts:
+
+- **TextPart** -- rendered as markdown-formatted terminal output
+- **ToolPart** -- shows tool name, status, and collapsed/expanded output
+- **ReasoningPart** -- shown in a dimmed style (chain-of-thought is secondary)
+- **StepFinishPart** -- shows step number, token count, and cost
+- **PatchPart** -- shows file changes with `+` green / `-` red coloring
+
+The component uses `PartDelta` events for smooth streaming. Rather than re-rendering the entire thread on each character, it accumulates deltas in a local buffer and flushes periodically.
+
+---
+
+## 31.4 Input Handling
+
+The input area supports:
+- Multi-line editing (Shift+Enter for newlines)
+- `@agent` mentions with autocomplete
+- `@file` references with path completion
+- `/command` prefixed special commands
+- Ctrl-C to abort the current operation
+- Up/Down arrows for prompt history
+
+---
+
+## 31.5 Permission Overlay
+
+When `Permission.Event.Asked` fires, the TUI displays an overlay:
+
+```
+╭─────────────────────────────────────────────╮
+│  Allow bash: npm install gray-matter ?      │
+│                                             │
+│  [y] Allow once  [a] Always  [n] Reject     │
+╰─────────────────────────────────────────────╯
+```
+
+The overlay blocks further input until the user responds. "Always" replies are stored in the approved ruleset for the current project.
+
+---
+
+## 31.6 Slash Commands
+
+Commands like `/model`, `/agent`, `/compact`, `/clear` are handled by the TUI's command parser before reaching the prompt system. They modify session state directly:
+
+| Command | Effect |
+|---------|--------|
+| `/model {name}` | Switch the active model |
+| `/agent {name}` | Switch the active agent |
+| `/compact` | Trigger manual compaction |
+| `/clear` | Clear conversation history |
+| `/share` | Share the session to opencode.ai |
 
 ---
 
@@ -35,19 +95,17 @@ The TUI is just another client:
 
 | Concept | File |
 |---------|------|
-| TUI entry | `cli/tui/` directory |
-| TUI routes | `server/routes/tui.ts` |
-| App package | `packages/app/` |
+| TUI entry | `cli/cmd/tui/index.tsx` |
+| Chat view | `cli/cmd/tui/chat.tsx` |
+| Thread | `cli/cmd/tui/thread/index.tsx` |
+| Input | `cli/cmd/tui/input.tsx` |
+| Slash commands | `cli/cmd/tui/commands.ts` |
 
 ---
 
-## 🧪 Test References
-
-The TUI and web app are primarily covered by **Playwright e2e specs** rather than unit tests:
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/cli/tui/thread.test.ts` | 157 | Thread/message rendering in the TUI |
-| `test/cli/tui/transcript.test.ts` | 322 | Transcript export formatting |
-| `test/config/tui.test.ts` | 510 | TUI configuration — keybindings, themes, scroll behavior |
-| `packages/app/e2e/app/*.spec.ts` | (50 files) | Full e2e tests: navigation, palette, sessions, settings, terminal, sidebar, file operations, prompts, models |
+| `test/cli/tui/thread.test.ts` | 157 | Thread rendering with various part types |
+| `test/cli/tui/input.test.ts` | varies | Input handling, key bindings, command parsing |

@@ -1,92 +1,150 @@
-# Chapter 14: Receiving a Prompt — From User Input to the Session Loop
+# Chapter 14: Receiving a Prompt -- From User Input to the Agentic Loop
 
-> *"A journey of a thousand tool calls begins with a single prompt."*
+> *"Before the machine can think, it must know what to think about."*
 
 ---
 
-## Notes & Key Points
+## 14.1 The Entry Point
 
-### 14.1 Prompt Entry Points
-
-A prompt can arrive via:
-1. **CLI `run` command** — `opencode run "build me a blog"`
-2. **TUI input** — user types in the terminal UI
-3. **SDK API call** — `sdk.session.prompt({ sessionID, parts: [...] })`
-4. **HTTP API** — `POST /session/:id/prompt`
-
-All paths converge on `SessionPrompt.prompt()` in `session/prompt.ts`.
-
-### 14.2 The PromptInput Schema
+Every prompt enters through `SessionPrompt.prompt()` in `session/prompt.ts`. This function bridges the gap between user input (from the TUI, CLI, or API) and the agentic loop. It's surprisingly simple -- most of the complexity is in the setup:
 
 ```typescript
-PromptInput = z.object({
-  sessionID,
-  model: { providerID, modelID },  // optional override
-  agent: z.string(),               // optional override
-  variant: z.string(),             // reasoning effort
-  format: MessageV2.Format,        // text or json_schema
-  system: z.string(),              // custom system prompt
-  parts: z.array(discriminatedUnion("type", [TextPart, FilePart, AgentPart, SubtaskPart]))
+export const prompt = fn(PromptInput, async (input) => {
+  const session = await Session.get(input.sessionID)
+  await SessionRevert.cleanup(session)   // clear any pending revert state
+  const message = await createUserMessage(input)
+  await Session.touch(input.sessionID)    // update timestamp
+
+  // handle backwards-compatible tool enable/disable via permissions
+  const permissions: PermissionNext.Ruleset = []
+  for (const [tool, enabled] of Object.entries(input.tools ?? {})) {
+    permissions.push({
+      permission: tool,
+      action: enabled ? "allow" : "deny",
+      pattern: "*",
+    })
+  }
+  if (permissions.length > 0) {
+    session.permission = permissions
+    await Session.setPermission({ sessionID: session.id, permission: permissions })
+  }
+
+  if (input.noReply === true) return message
+  return loop({ sessionID: input.sessionID })
 })
 ```
 
-### 14.3 Creating the User Message
-
-`createUserMessage(input)`:
-1. Resolves attached files (reads directory listings, file contents)
-2. Processes `@agent` references in text
-3. Creates the user message record in the database
-4. Stores file parts, text parts, agent parts
-
-### 14.4 Entering the Loop
-
-After creating the user message, `prompt()` calls `loop({ sessionID })`.
-
-If the session is already processing (another prompt is in-flight), the caller gets queued — they receive a Promise that resolves when the current loop finishes.
-
-### 14.5 The Run Command Flow
-
-In `cli/cmd/run.ts`:
-1. Parse CLI args (message, model, agent, files, session options)
-2. Bootstrap the project instance
-3. Create an in-process SDK client
-4. Subscribe to SSE events
-5. Create or resume a session
-6. Call `sdk.session.prompt()` with the message
-7. Loop over events, formatting tool calls and text output
-8. Exit when `session.status.idle` is received
+Three important things happen before the loop:
+1. **Revert cleanup** -- if a previous revert was pending, `SessionRevert.cleanup()` clears it
+2. **User message creation** -- `createUserMessage()` builds the `MessageV2.User` with all parts
+3. **Permission setup** -- per-prompt tool overrides (`{ "bash": false }`) become session-scoped permission rules
 
 ---
 
-## 📝 Worked Example: The Blog Prompt Enters the System
+## 14.2 PromptInput -- What the User Sends
 
-Our example prompt is:
+The `PromptInput` schema defines everything a prompt can carry:
+
+```typescript
+export const PromptInput = z.object({
+  sessionID: SessionID.zod,
+  messageID: MessageID.zod.optional(),   // for retrying a specific message
+  model: z.object({
+    providerID: ProviderID.zod,
+    modelID: ModelID.zod,
+  }).optional(),                          // override model for this prompt
+  agent: z.string().optional(),           // override agent (e.g., "plan")
+  noReply: z.boolean().optional(),        // store message but don't run loop
+  format: MessageV2.Format.optional(),    // text or JSON schema output
+  system: z.string().optional(),          // custom system prompt addition
+  variant: z.string().optional(),         // reasoning effort level
+  parts: z.array(z.discriminatedUnion("type", [
+    TextPartInput,     // user's text
+    FilePartInput,     // attached files (images, documents)
+    AgentPartInput,    // @agent mentions
+    SubtaskPartInput,  // sub-task requests
+  ])),
+})
+```
+
+The `parts` array lets a single prompt carry mixed content: text, files, agent references, and sub-task commands. The TUI parses user input to extract `@agent` mentions and file attachments into separate parts.
+
+### The `noReply` Flag
+
+Setting `noReply: true` stores the user message but doesn't invoke the agentic loop. This is used by the API when callers want to batch multiple messages before triggering a response, or when injecting context without expecting a reply.
+
+---
+
+## 14.3 Creating the User Message
+
+`createUserMessage()` assembles the `MessageV2.User` object:
+
+1. **Resolve the model** -- uses the prompt's model override, falls back to the agent's default, then the session's previous model
+2. **Resolve the agent** -- checks for `@agent` parts, falls back to the prompt's agent field, then the default agent
+3. **Create the message** -- inserts via `Session.updateMessage()` with a `MessageID.ascending()` (ascending because messages are ordered chronologically within a session)
+4. **Attach parts** -- loops through input parts, creating `TextPart`, `FilePart`, or `AgentPart` entries via `Session.updatePart()`
+5. **Resolve file attachments** -- file parts with data URLs get decoded; file paths get read and encoded
+
+### Prompt Template Resolution
+
+`resolvePromptParts()` handles the `@file` syntax in prompts. When a user writes `@README.md` in their prompt, it:
+1. Scans for `ConfigMarkdown.files()` -- recognized file references
+2. Reads each file from disk
+3. Creates `FilePart` entries with the file contents as data URLs
+
+---
+
+## 14.4 Model and Agent Resolution
+
+The prompt-time model resolution follows a priority chain:
 
 ```
-Use NextJS, Typescript and TailwindCSS to create a simple blog application.
-The application should pull content for posts from a directory of static
-markdown files, with filenames organized by date. The most recent post should
-be displayed first, with subsequent posts lazy loaded as the user scrolls.
-Review the documentation at https://nextjs.org/docs to ensure you use the
-most recent version of the framework.
+User's explicit model  -->  Agent's default model  -->  Session's last model  -->  Config default
 ```
 
-When the user runs `opencode run "Use NextJS..."`:
+Agent resolution works similarly:
+```
+@agent mention in parts  -->  input.agent field  -->  Session's last agent  -->  "coder" (default)
+```
 
-1. **CLI parses** the message via yargs → `RunCommand.handler()` fires
-2. **Bootstrap** initializes the project instance (`Instance.provide()`)
-3. **In-process SDK client** is created with `Server.Default().fetch` as the transport
-4. **Event subscription** begins — the CLI subscribes to `message.part.updated`, `session.status`, and `permission.asked`
-5. **Session created** — `sdk.session.create({})` allocates a new session ID and database row
-6. **Prompt sent** — `sdk.session.prompt({ sessionID, parts: [{ type: "text", text: "Use NextJS..." }] })`
-7. This hits the server route → calls `SessionPrompt.prompt()` → creates the user message → enters `loop()`
+The `@agent` mention syntax (e.g., `@plan can you review this?`) is parsed from `AgentPart` entries in the parts array. This lets users switch agents mid-conversation without changing settings.
 
-The user message is stored with:
-- `model`: the default or specified model (e.g., `ollama/llama3.2`)
-- `agent`: `"build"` (the default full-access agent)
-- A single text part containing the prompt
+---
 
-From here, the loop takes over (see Chapters 15–18).
+## 14.5 Prompt Variants (Reasoning Effort)
+
+The `variant` field controls reasoning effort. Some models support multiple effort levels:
+
+| Variant | Effect | Example Models |
+|---------|--------|----------------|
+| (none) | Default behavior | All |
+| `"high"` | Extended thinking | Claude 3.5+, o3-mini |
+| `"max"` | Maximum reasoning budget | Claude with extended thinking |
+
+Variants are defined per-model in the provider configuration. The option merge chain in `LLM.stream()` applies them: `base -> model.options -> agent.options -> variant`.
+
+---
+
+## 14.6 Structured Output
+
+When `format` is set to `json_schema`, the prompt system injects a `StructuredOutput` tool and a system prompt directive telling the model to call that tool with its final answer:
+
+```
+"IMPORTANT: The user has requested structured output. You MUST use the
+StructuredOutput tool to provide your final response."
+```
+
+The JSON schema is validated on both sides: the Zod schema defines the expected structure, and the model's output is parsed against it with configurable retry count.
+
+Cross-reference: Chapter 16 covers how the structured output tool integrates with `streamText()`.
+
+---
+
+## 14.7 The Bridge to the Loop
+
+After message creation, `prompt()` calls `loop({ sessionID })`. This is the handoff point -- from here, control passes to the agentic loop (Chapter 18), which iterates through LLM calls and tool executions until the model produces a final response.
+
+The `prompt()` function returns a `Promise<MessageV2.WithParts>` -- the final assistant message with all its parts. The caller (TUI, CLI, or API handler) awaits this promise while the loop runs.
 
 ---
 
@@ -95,15 +153,16 @@ From here, the loop takes over (see Chapters 15–18).
 | Concept | File |
 |---------|------|
 | Prompt entry | `session/prompt.ts` (`SessionPrompt.prompt()`) |
-| Run command | `cli/cmd/run.ts` |
-| Session routes | `server/routes/session.ts` |
+| User message creation | `session/prompt.ts` (`createUserMessage()`) |
+| Prompt template files | `config/markdown.ts` |
+| Prompt variants | `provider/transform.ts` |
 
 ---
 
-## 🧪 Test References
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/session/prompt.test.ts` | 212 | Missing file handling (graceful failure with synthetic error part), part ordering stability during async file resolution, agent variant application (only when using agent's own model), variant override via `noReply` mode |
-| `test/cli/cmd/tui/prompt-part.test.ts` | 47 | Prompt part construction from TUI input |
-| `test/cli/github-action.test.ts` | 198 | Prompt handling in GitHub Actions CI context |
+| `test/session/prompt.test.ts` | 212 | Prompt creation and variant resolution that precedes loop entry |
+| `test/session/structured-output.test.ts` | 386 | Structured output (JSON schema) prompt handling and tool injection |
+| `test/session/structured-output-integration.test.ts` | 233 | End-to-end structured output with tool calling |

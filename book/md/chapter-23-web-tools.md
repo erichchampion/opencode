@@ -1,64 +1,77 @@
-# Chapter 23: Web Tools — Fetch and Search
+# Chapter 23: Web Tools -- Fetch and Search
+
+> *"The internet is the largest reference manual ever written."*
 
 ---
 
-## Notes & Key Points
+## 23.1 Overview
 
-### 23.1 WebFetchTool (`tool/webfetch.ts`)
-- Fetches web pages and converts to markdown
-- ~6KB implementation
-- Handles HTML-to-markdown conversion
-- Timeout and size limits
-- Used by the model to read documentation (critical for our example prompt!)
-
-### 23.2 WebSearchTool (`tool/websearch.ts`)
-- Uses Exa API for web search
-- Returns search results with snippets
-- Only enabled for Zen users or via `OPENCODE_ENABLE_EXA` flag
+The web tools let the model access external information during a coding session. This is critical for our blog prompt: the model needs to read the Next.js documentation to use the latest APIs correctly.
 
 ---
 
-## 📝 Worked Example: Fetching Next.js Documentation
+## 23.2 WebFetchTool (`tool/webfetch.ts`)
 
-Our blog prompt explicitly asks the model to "review the documentation at https://nextjs.org/docs." This triggers the webfetch tool early in the session:
+Fetches a URL and converts the HTML to markdown:
 
 ```
-webfetch({ url: "https://nextjs.org/docs" })
+webfetch({ url: "https://nextjs.org/docs/getting-started" })
 ```
 
-**Code path:**
-1. The stream processor receives `tool-call` with `toolName: "webfetch"`
-2. `resolveTools()` has already wrapped `WebFetchTool` in an AI SDK `tool()` callback
-3. The callback creates a `Tool.Context` and calls `WebFetchTool.execute()`
-4. Inside execute:
-   - Permission check: `ctx.ask({ permission: "webfetch", patterns: ["https://nextjs.org/*"] })`
-   - `fetch("https://nextjs.org/docs")` retrieves the page
-   - HTML converted to markdown (stripping navigation, scripts, etc.)
-   - Output truncated via `Truncate.output()` if it exceeds the configured limit
-5. Tool result stored as a completed `ToolPart` with the markdown content
-6. The model now has up-to-date Next.js documentation in its context window
+Key behaviors:
+- **HTTP fetch** -- uses `fetch()` with a configurable timeout
+- **HTML-to-markdown conversion** -- the raw HTML is converted to Markdown for the model to read, stripping navigation, ads, and boilerplate
+- **Content truncation** -- large pages are truncated via `Truncate.output()` to fit within context limits
+- **Error handling** -- HTTP errors, timeouts, and network failures return descriptive messages instead of throwing
 
-**What the user sees in the CLI:**
-```
-🔧 webfetch → https://nextjs.org/docs
-  Read 15,432 chars from nextjs.org
+### Why Markdown?
+
+Raw HTML is verbose and confusing for LLMs. A single documentation page can be 50,000+ characters of HTML but only 5,000 characters of useful content. The HTML-to-markdown conversion:
+1. Strips navigation, headers, footers, scripts, and styles
+2. Preserves code blocks, headings, and list structure
+3. Reduces token usage by ~10x compared to raw HTML
+
+---
+
+## 23.3 Permission Model
+
+Web fetch requires permission since it makes external network requests:
+
+```typescript
+await ctx.ask({
+  permission: "webfetch",
+  patterns: [params.url],
+  always: [new URL(params.url).hostname + "/*"],
+})
 ```
 
-The SSE event `message.part.updated` fires → the CLI renders the tool status.
+The "always allow" pattern is domain-scoped: approving `nextjs.org/docs/getting-started` also allows all future fetches from `nextjs.org/*`.
+
+---
+
+## 23.4 Worked Example
+
+For our blog prompt `"Review the documentation at https://nextjs.org/docs"`:
+
+1. Model calls `webfetch({ url: "https://nextjs.org/docs" })` -- permission requested
+2. User approves (always allow `nextjs.org/*`)
+3. The tool fetches the page, converts to markdown, returns ~3,000 tokens of documentation
+4. Model reads the markdown, identifies the App Router API, file-based routing conventions
+5. Model may make 2-3 follow-up fetches for specific pages (e.g., layout docs, metadata docs)
+6. All subsequent `nextjs.org` fetches are auto-approved
 
 ---
 
 ## Source File Map
 
-| Tool | File |
-|------|------|
-| WebFetch | `tool/webfetch.ts` |
-| WebSearch | `tool/websearch.ts` |
+| Concept | File |
+|---------|------|
+| Web fetch | `tool/webfetch.ts` |
 
 ---
 
-## 🧪 Test References
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/tool/webfetch.test.ts` | 101 | URL fetching, HTML-to-markdown conversion, timeout handling, output size limits |
+| `test/tool/webfetch.test.ts` | varies | URL fetching, HTML conversion, timeout, error handling |

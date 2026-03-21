@@ -1,29 +1,87 @@
-# Chapter 26: The Event Bus — Decoupled Communication
+# Chapter 26: The Event Bus -- Typed Events and Subscribers
+
+> *"Loose coupling through structured communication."*
 
 ---
 
-## Notes & Key Points
+## 26.1 Overview
 
-### 26.1 Design
+The event bus (`bus/index.ts`) is OpenCode's internal pub-sub system. It decouples producers (session mutations, tool executions) from consumers (TUI rendering, SSE streaming, API responses). Every significant state change in OpenCode flows through the bus.
 
-The `Bus` module (`bus/index.ts`, ~2.7KB) provides an in-process pub/sub system:
-- `Bus.publish(event, data)` — broadcast an event
-- `Bus.subscribe(event, handler)` — listen for events
-- Events are typed via TypeScript generics
+---
 
-### 26.2 Key Events
+## 26.2 BusEvent.define()
 
-| Event | Publishers | Subscribers |
-|-------|-----------|-------------|
-| `Session.Event.Created` | Session | Server (SSE), UI |
-| `Session.Event.Updated` | Session | Server (SSE), UI |
-| `Message.Event.PartUpdated` | Processor | Server (SSE → client) |
-| `Permission.Event.Asked` | Permission | Server (SSE → client) |
-| `Session.Event.Error` | Processor | CLI (error display) |
+Events are defined with string names and Zod schemas:
 
-### 26.3 SSE Bridge
+```typescript
+export const Event = {
+  Created: BusEvent.define("session.created", z.object({ info: Session.Info })),
+  Updated: BusEvent.define("session.updated", z.object({ info: Session.Info })),
+  Deleted: BusEvent.define("session.deleted", z.object({ info: Session.Info })),
+  Diff:    BusEvent.define("session.diff",    z.object({ sessionID, diff: FileDiff.array() })),
+  Error:   BusEvent.define("session.error",   z.object({ sessionID, error: z.any() })),
+}
+```
 
-The server's `EventRoutes` subscribes to the bus and forwards events to clients via Server-Sent Events (SSE). This enables real-time UI updates.
+This provides:
+1. **Type safety** -- subscribers get typed payloads
+2. **Runtime validation** -- published data is validated against the schema
+3. **Discoverability** -- all events are defined in one place per module
+
+---
+
+## 26.3 Publishing and Subscribing
+
+```typescript
+Bus.publish(Session.Event.Created, { info: session })
+
+Bus.subscribe(Session.Event.Created, (payload) => {
+  // payload: { info: Session.Info } -- fully typed
+  console.log(`New session: ${payload.info.title}`)
+})
+```
+
+### Database.effect()
+
+When publishing inside a database transaction, use `Database.effect()`:
+
+```typescript
+Database.use((db) => {
+  db.insert(SessionTable).values(toRow(result)).run()
+  Database.effect(() => Bus.publish(Event.Created, { info: result }))
+})
+```
+
+This defers the publish until the transaction commits, preventing subscribers from seeing events for data that might roll back.
+
+---
+
+## 26.4 Key Event Categories
+
+| Namespace | Events | Purpose |
+|-----------|--------|---------|
+| `Session.Event` | Created, Updated, Deleted, Diff, Error | Session lifecycle |
+| `MessageV2.Event` | message.updated, part.updated, part.delta, part.removed | Message mutations |
+| `Permission.Event` | Asked, Replied | Permission flow |
+| `MCP.ToolsChanged` | mcp.tools.changed | MCP server tool list updates |
+| `TuiEvent` | ToastShow | TUI notifications |
+
+---
+
+## 26.5 Events and SSE
+
+The server's SSE endpoint (`/events`) subscribes to bus events and forwards them to clients:
+
+```
+Bus.publish(Event.Updated) --> SSE subscriber --> JSON event --> Client
+```
+
+This is how the TUI and SDK receive real-time updates. Each SSE event carries:
+- `type` -- the event name (e.g., `"session.updated"`)
+- `data` -- JSON-encoded payload
+
+Cross-reference: Chapter 7 covers the HTTP server and SSE endpoint.
 
 ---
 
@@ -31,18 +89,5 @@ The server's `EventRoutes` subscribes to the bus and forwards events to clients 
 
 | Concept | File |
 |---------|------|
-| Bus | `bus/index.ts` |
-| Bus events | `bus/bus-event.ts` |
-
----
-
-## 🧪 Test References
-
-The Bus is tested indirectly through most integration tests — nearly every test that creates sessions or messages verifies event publishing. Key direct tests:
-
-| Test File | Lines | What It Demonstrates |
-|-----------|-------|---------------------|
-| `test/acp/event-subscription.test.ts` | 683 | Event subscription patterns, filtering, and lifecycle management |
-| `test/control-plane/sse.test.ts` | 56 | SSE event forwarding from Bus to HTTP clients |
-| `test/control-plane/workspace-server-sse.test.ts` | 70 | Workspace-level SSE event streaming |
-| `test/session/session.test.ts` | 142 | `Bus.subscribe(Session.Event.Created, ...)` — canonical pattern for event subscription (see Chapter 12) |
+| Bus core | `bus/index.ts` |
+| Event definition | `bus/bus-event.ts` |
