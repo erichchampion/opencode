@@ -53,15 +53,56 @@ This approach has a major advantage: it works with any project, any language, wi
 
 ---
 
-## 21.5 LSP Integration
+## 21.5 The LSP Tool (`tool/lsp.ts`)
 
-While not a standalone tool, the LSP (Language Server Protocol) integration provides code intelligence data to other tools:
+The LSP tool provides direct access to Language Server Protocol operations. Unlike the implicit LSP integration in edit/write tools (which only queries diagnostics), this tool lets the model perform rich code navigation:
 
-- **WriteTool and EditTool** query LSP diagnostics after file modifications
-- Diagnostics (errors, warnings) are included in tool output, helping the model self-correct
-- Language servers are started on-demand based on file types
+### Supported Operations
 
-The LSP integration is optional -- if no language server is available, tools work without diagnostics.
+| Operation | What It Returns |
+|-----------|----------------|
+| `goToDefinition` | Source location where a symbol is defined |
+| `findReferences` | All locations where a symbol is used |
+| `hover` | Type information and documentation for a symbol |
+| `documentSymbol` | All symbols (functions, classes, variables) in a file |
+| `workspaceSymbol` | Search for symbols across the entire workspace |
+| `goToImplementation` | Concrete implementations of an interface/abstract method |
+| `prepareCallHierarchy` | Entry point for call hierarchy queries |
+| `incomingCalls` | Functions that call a given function |
+| `outgoingCalls` | Functions called by a given function |
+
+### Usage
+
+```
+lsp({ operation: "goToDefinition", filePath: "src/session/prompt.ts", line: 42, character: 15 })
+```
+
+Line and character are 1-based (as shown in editors). The tool converts to 0-based for the LSP protocol.
+
+### Availability
+
+The LSP tool is gated behind the `OPENCODE_EXPERIMENTAL_LSP_TOOL` feature flag. It requires a running language server for the target file type — if no server is available, it throws a descriptive error rather than returning empty results.
+
+---
+
+## 21.6 Code Search Tool (`tool/codesearch.ts`)
+
+The code search tool queries external code documentation and examples via the Exa API:
+
+```
+codesearch({ query: "React useState hook examples", tokensNum: 5000 })
+```
+
+Key behaviors:
+- **External API** — sends a JSON-RPC request to `https://mcp.exa.ai/mcp` using the MCP protocol
+- **Token control** — `tokensNum` parameter (1,000–50,000) controls how much context to return
+- **Permission required** — requires user approval; "always allow" auto-approves all queries
+- **SSE response parsing** — the API returns Server-Sent Events which are parsed to extract the content
+- **30-second timeout** — requests abort after 30 seconds
+
+### Availability
+
+Only available when using the OpenCode provider or when the `OPENCODE_ENABLE_EXA` feature flag is set.
 
 ---
 
@@ -71,6 +112,8 @@ The LSP integration is optional -- if no language server is available, tools wor
 |---------|------|
 | Grep | `tool/grep.ts` |
 | Glob | `tool/glob.ts` |
+| LSP tool | `tool/lsp.ts` |
+| Code search | `tool/codesearch.ts` |
 | Ripgrep wrapper | `file/ripgrep.ts` |
 | LSP integration | `lsp/index.ts` |
 

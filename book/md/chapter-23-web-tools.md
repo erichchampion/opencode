@@ -62,11 +62,130 @@ For our blog prompt `"Review the documentation at https://nextjs.org/docs"`:
 
 ---
 
+## 23.5 Web Search Tool (`tool/websearch.ts`)
+
+Performs web searches via the Exa API and returns results as LLM-optimized text:
+
+```
+websearch({ query: "Next.js App Router tutorial", numResults: 8, type: "auto" })
+```
+
+### Parameters
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `query` | required | Search query |
+| `numResults` | 8 | Number of results to return |
+| `type` | `"auto"` | `"auto"` (balanced), `"fast"` (quick), `"deep"` (comprehensive) |
+| `livecrawl` | `"fallback"` | `"fallback"` (cache first) or `"preferred"` (prioritize live) |
+| `contextMaxCharacters` | 10,000 | Max characters for context string |
+
+### How It Works
+
+1. Permission checked (query pattern shown to user)
+2. JSON-RPC request sent to `https://mcp.exa.ai/mcp` calling `web_search_exa`
+3. SSE response parsed to extract content
+4. 25-second timeout on the request
+
+### Availability
+
+Like `codesearch`, only available for OpenCode provider users or when `OPENCODE_ENABLE_EXA` is set.
+
+---
+
+## 23.6 Batch Tool (`tool/batch.ts`)
+
+Executes multiple tool calls in parallel:
+
+```
+batch({
+  tool_calls: [
+    { tool: "read", parameters: { filePath: "package.json" } },
+    { tool: "read", parameters: { filePath: "tsconfig.json" } },
+    { tool: "grep", parameters: { pattern: "TODO" } },
+  ]
+})
+```
+
+Key behaviors:
+- **Parallel execution** — all calls run via `Promise.all()` and results are aggregated
+- **Max 25 calls** — calls beyond 25 are recorded as errors
+- **Cannot nest** — `batch` cannot call itself (prevents recursive parallel execution)
+- **No MCP tools** — external tools (MCP, environment) cannot be batched; only built-in tools
+- **Individual tracking** — each sub-call gets its own `ToolPart` in the TUI with independent status
+
+This is an experimental tool (requires `experimental.batch_tool: true` in config).
+
+---
+
+## 23.7 Question Tool (`tool/question.ts`)
+
+Asks the user structured questions with predefined options:
+
+```
+question({
+  questions: [
+    { question: "Which database?", header: "Database", options: [
+      { label: "PostgreSQL", description: "Relational" },
+      { label: "MongoDB", description: "Document" },
+    ] }
+  ]
+})
+```
+
+The tool blocks execution until the user responds. Answers are returned formatted and the model continues with the user's choices. Only available when the client is `app`, `cli`, or `desktop` (not available in SDK/API mode).
+
+---
+
+## 23.8 Todo Tools (`tool/todo.ts`)
+
+Two tools for session-scoped task tracking:
+
+**`todowrite`** — updates the session's todo list:
+```
+todowrite({ todos: [
+  { content: "Set up database", status: "completed" },
+  { content: "Add auth", status: "in_progress" },
+  { content: "Write tests", status: "pending" },
+] })
+```
+
+**`todoread`** — reads the current todo list. Currently commented out in the registry (the model can use `todowrite` to both read and update).
+
+Todos are stored per-session and displayed in the TUI's sidebar. They help the model track progress on multi-step tasks.
+
+---
+
+## 23.9 Skill Tool (`tool/skill.ts`)
+
+Loads domain-specific instructions into the conversation:
+
+```
+skill({ name: "deploy" })
+```
+
+Key behaviors:
+1. Looks up the skill by name from available SKILL.md files
+2. Reads the skill's content (instructions, workflows, commands)
+3. Lists up to 10 additional files in the skill directory (scripts, templates)
+4. Returns everything wrapped in `<skill_content>` tags
+
+Skills are discovered from `.opencode/skills/` directories. Each skill has a `SKILL.md` with YAML frontmatter (name, description) and markdown instructions.
+
+The skill tool's description dynamically lists available skills, so the model knows what's available before calling it.
+
+---
+
 ## Source File Map
 
 | Concept | File |
 |---------|------|
 | Web fetch | `tool/webfetch.ts` |
+| Web search | `tool/websearch.ts` |
+| Batch | `tool/batch.ts` |
+| Question | `tool/question.ts` |
+| Todo | `tool/todo.ts` |
+| Skill | `tool/skill.ts` |
 
 ---
 
@@ -75,3 +194,4 @@ For our blog prompt `"Review the documentation at https://nextjs.org/docs"`:
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
 | `test/tool/webfetch.test.ts` | varies | URL fetching, HTML conversion, timeout, error handling |
+| `test/tool/skill.test.ts` | 163 | Skill loading, file listing, content formatting |

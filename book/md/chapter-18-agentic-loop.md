@@ -146,11 +146,107 @@ For our NextJS blog prompt, the loop typically executes 15-30 iterations:
 
 ---
 
+## 18.9 Agent Resolution
+
+Before each step, the loop resolves which agent is active. The agent determines the model, permissions, prompt, and tool set:
+
+```typescript
+const agent = await Agent.get(resolvedAgentName)
+const permission = PermissionNext.merge(agent.permission, sessionPermission, approved)
+```
+
+### Built-In Agents
+
+| Agent | Mode | Purpose | Key Permissions |
+|-------|------|---------|----------------|
+| `build` | primary | Default agent. Edits files, runs commands. | All tools allowed, question + plan_enter enabled |
+| `plan` | primary | Research and planning only. | Edit tools **denied** (except plan `.md` files) |
+| `general` | subagent | Multi-step tasks via TaskTool. | Todo tools denied (prevents state leaks between parent/child) |
+| `explore` | subagent | Fast codebase exploration. | Only read-only tools: grep, glob, list, read, bash, webfetch |
+| `title` | hidden | Generates 3-5 word session titles. | All tools denied (text generation only) |
+| `compaction` | hidden | Summarizes long conversations. | All tools denied |
+| `summary` | hidden | Generates session summaries. | All tools denied |
+
+### Agent Switching
+
+The `plan_exit` tool enables agent transitions. When invoked:
+1. The tool asks the user to confirm switching (via `Question.ask()`)
+2. If confirmed, a synthetic user message is injected with `agent: "build"`
+3. The loop picks up the new agent on the next iteration
+
+This creates a plan → build workflow: the `plan` agent researches and writes a plan file, then `plan_exit` switches to `build` which executes the plan.
+
+---
+
+## 18.10 Tool Resolution Pipeline
+
+Each loop iteration resolves the available tools through a 4-step pipeline:
+
+```
+ToolRegistry.tools(model, agent)
+    |
+    |  1. Built-in tools (22 defined)
+    |  2. Filter by model (apply_patch only for GPT-5+)
+    |  3. Filter by feature flags (LSP, batch, plan, websearch)
+    |
+    v
+resolveTools()
+    |
+    |  4. Agent permission filtering (disabled tools removed)
+    |  5. MCP tools added (namespaced: {server}_{tool})
+    |  6. Plugin hooks (tool.definition, tool.register)
+    |  7. Wrap each tool for AI SDK integration
+    |
+    v
+streamText({ tools })
+```
+
+The result is a `Record<string, AITool>` where each key is a tool name and each value wraps `execute()` with permission checks, output truncation, and session state updates.
+
+---
+
+## 18.11 Inter-Step Data Flow
+
+The data flow between the loop and processor on each iteration:
+
+```
+┌─── LOOP ITERATION ───────────────────────────┐
+│                                               │
+│  1. Load messages (filterCompacted)           │
+│  2. Resolve agent, model, tools               │
+│  3. Build system prompt                       │
+│  4. Create fresh Processor                    │
+│                                               │
+│  ┌─── PROCESSOR ──────────────────────────┐   │
+│  │                                         │   │
+│  │  stream = LLM.stream(messages, tools)   │   │
+│  │  for await (event of stream.fullStream) │   │
+│  │    text-delta  → Bus.publish(PartDelta) │   │
+│  │    tool-call   → execute + updatePart   │   │
+│  │    finish-step → snapshot + cost        │   │
+│  │                                         │   │
+│  │  return "continue" | "compact" | "stop" │   │
+│  └─────────────────────────────────────────┘   │
+│                                               │
+│  "continue" → goto 1 (re-read messages)      │
+│  "compact"  → SessionCompaction.process()     │
+│  "stop"     → break                          │
+│                                               │
+└───────────────────────────────────────────────┘
+```
+
+The key insight is that the processor's return value controls the loop. The processor is stateless between iterations -- a new one is created each time, with fresh `toolcalls`, `snapshot`, and `blocked` state.
+
+---
+
 ## Source File Map
 
 | Concept | File |
 |---------|------|
 | Main loop | `session/prompt.ts` (`SessionPrompt.loop()`) |
+| Agent definitions | `agent/agent.ts` |
+| Tool resolution | `session/prompt.ts` (`resolveTools()`) |
+| Tool registry | `tool/registry.ts` |
 | Compaction | `session/compaction.ts` |
 | Summary | `session/summary.ts` |
 
@@ -163,3 +259,4 @@ For our NextJS blog prompt, the loop typically executes 15-30 iterations:
 | `test/session/compaction.test.ts` | 423 | Compaction trigger detection, summary generation, compacted message filtering |
 | `test/session/revert-compact.test.ts` | 286 | Reverting to pre-compaction state |
 | `test/session/prompt.test.ts` | 212 | Prompt creation and variant resolution that precedes loop entry |
+| `test/tool/registry.test.ts` | 122 | Tool discovery, filtering by model/agent, custom tool loading |

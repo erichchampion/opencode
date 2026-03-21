@@ -137,6 +137,97 @@ This gives the model an error message with the list of available tools, letting 
 
 ---
 
+## 19.8 Complete Tool Catalog
+
+OpenCode provides 22 built-in tools, organized into functional categories:
+
+### Filesystem Tools
+
+| Tool | ID | Source | Purpose |
+|------|-----|--------|---------|
+| Read | `read` | `tool/read.ts` | Read file contents with line numbering; supports line ranges and image detection |
+| Write | `write` | `tool/write.ts` | Create or overwrite files with complete content |
+| Edit | `edit` | `tool/edit.ts` | Search-and-replace within files; generates unified diffs |
+| Multi Edit | `multiedit` | `tool/multiedit.ts` | Multiple search-and-replace operations in a single call |
+| Apply Patch | `apply_patch` | `tool/apply_patch.ts` | Apply unified diff patches (enabled for GPT-5+ models only) |
+| Glob | `glob` | `tool/glob.ts` | Find files by pattern, respects `.gitignore` |
+| List | `list` | `tool/ls.ts` | List directory contents with file sizes and types |
+| Grep | `grep` | `tool/grep.ts` | Regex search across files using ripgrep |
+
+### Code Intelligence Tools
+
+| Tool | ID | Source | Purpose |
+|------|-----|--------|---------|
+| LSP | `lsp` | `tool/lsp.ts` | Language Server Protocol operations: go-to-definition, find references, hover, document symbols, call hierarchy |
+| Code Search | `codesearch` | `tool/codesearch.ts` | Search external code documentation via Exa API (MCP protocol) |
+
+### Execution Tools
+
+| Tool | ID | Source | Purpose |
+|------|-----|--------|---------|
+| Bash | `bash` | `tool/bash.ts` | Execute shell commands with Tree-sitter parsing for permission extraction |
+| Batch | `batch` | `tool/batch.ts` | Execute up to 25 tool calls in parallel; cannot nest itself |
+
+### Web Tools
+
+| Tool | ID | Source | Purpose |
+|------|-----|--------|---------|
+| Web Fetch | `webfetch` | `tool/webfetch.ts` | Fetch a URL, convert HTML to markdown, return content |
+| Web Search | `websearch` | `tool/websearch.ts` | Web search via Exa API with fast/deep modes and live crawling |
+
+### Orchestration Tools
+
+| Tool | ID | Source | Purpose |
+|------|-----|--------|---------|
+| Task | `task` | `tool/task.ts` | Spawn a child session with a specific agent (sub-agent pattern) |
+| Plan Exit | `plan_exit` | `tool/plan.ts` | Transition from plan agent to build agent with user confirmation |
+| Question | `question` | `tool/question.ts` | Ask the user structured questions with predefined options |
+| Skill | `skill` | `tool/skill.ts` | Load domain-specific instructions from SKILL.md files |
+
+### State Management Tools
+
+| Tool | ID | Source | Purpose |
+|------|-----|--------|---------|
+| Todo Write | `todowrite` | `tool/todo.ts` | Update the session's todo list (structured task tracking) |
+| Todo Read | `todoread` | `tool/todo.ts` | Read the current session's todo list |
+
+### Error Handling
+
+| Tool | ID | Source | Purpose |
+|------|-----|--------|---------|
+| Invalid | `invalid` | `tool/invalid.ts` | Catches calls to non-existent tools; returns available tool list for self-correction |
+
+### Conditional Availability
+
+Not all tools are available in every session. The registry filters tools based on:
+
+| Condition | Tools Affected | Rule |
+|-----------|---------------|------|
+| Model type | `apply_patch` vs `edit`/`write` | GPT-5+ uses `apply_patch`; others use `edit`/`write` |
+| Provider | `websearch`, `codesearch` | Only for OpenCode provider or `OPENCODE_ENABLE_EXA` flag |
+| Feature flag | `lsp` | `OPENCODE_EXPERIMENTAL_LSP_TOOL` |
+| Feature flag | `batch` | Config `experimental.batch_tool: true` |
+| Feature flag | `plan_exit` | `OPENCODE_EXPERIMENTAL_PLAN_MODE` + CLI client |
+| Client type | `question` | Only for `app`, `cli`, `desktop` clients |
+| Agent | varies | Agent permissions deny/allow specific tools per agent |
+
+### Custom Tools
+
+Users can add custom tools by placing `.ts` or `.js` files in `.opencode/tools/`:
+
+```typescript
+// .opencode/tools/deploy.ts
+export default {
+  description: "Deploy to staging",
+  args: { env: z.enum(["staging", "prod"]) },
+  execute: async (args, ctx) => `Deployed to ${args.env}`,
+}
+```
+
+These are auto-discovered at startup and receive the same output truncation and permission handling as built-in tools.
+
+---
+
 ## Source File Map
 
 | Concept | File |
