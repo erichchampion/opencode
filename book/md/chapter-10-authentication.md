@@ -50,7 +50,7 @@ Each provider needs credentials — API keys, OAuth tokens, AWS credential chain
 
 ---
 
-## 🧪 Test References
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
@@ -67,19 +67,19 @@ For providers that support OAuth (OpenAI, GitHub Copilot, GitLab Duo), OpenCode 
 
 ```
 opencode auth login openai
-    │
-    ├── 1. Generate PKCE challenge (code_verifier + code_challenge)
-    ├── 2. Start local HTTP server on random port (callback listener)
-    ├── 3. Open browser → provider's OAuth authorization URL
-    │       with client_id, redirect_uri=localhost:PORT, scope, code_challenge
-    │
-    │   (User logs in via browser, approves access)
-    │
-    ├── 4. Browser redirects to localhost:PORT/callback?code=AUTH_CODE
-    ├── 5. Exchange AUTH_CODE for access_token + refresh_token
-    │       via provider's token endpoint
-    ├── 6. Store tokens via Auth.set("openai", { type: "oauth", ... })
-    └── 7. Close local HTTP server
+    |
+    +-- 1. Generate PKCE challenge (code_verifier + code_challenge)
+    +-- 2. Start local HTTP server on random port (callback listener)
+    +-- 3. Open browser --> provider's OAuth authorization URL
+    |       with client_id, redirect_uri=localhost:PORT, scope, code_challenge
+    |
+    |   (User logs in via browser, approves access)
+    |
+    +-- 4. Browser redirects to localhost:PORT/callback?code=AUTH_CODE
+    +-- 5. Exchange AUTH_CODE for access_token + refresh_token
+    |       via provider's token endpoint
+    +-- 6. Store tokens via Auth.set("openai", { type: "oauth", ... })
+    +-- 7. Close local HTTP server
 ```
 
 The `test/mcp/oauth-browser.test.ts` (249 lines) tests this flow end-to-end.

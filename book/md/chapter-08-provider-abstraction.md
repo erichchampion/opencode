@@ -82,7 +82,7 @@ Rich model metadata:
 
 ---
 
-## 🧪 Test References
+## Test References
 
 Provider handling has the most complex test suite in the project:
 

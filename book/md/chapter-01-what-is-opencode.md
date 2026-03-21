@@ -27,7 +27,7 @@ OpenCode is a terminal-first AI coding agent that gives large language models th
 
 ### 1.1 Agent vs. Assistant
 
-- **Assistants** respond to a single prompt; **agents** loop: prompt → plan → act → observe → continue
+- **Assistants** respond to a single prompt; **agents** loop: prompt --> plan --> act --> observe --> continue
 - OpenCode implements a multi-step agentic loop in `session/prompt.ts` — the `loop()` function runs until the model emits a finish reason that is not `tool-calls`
 - Key insight: the model's finish reason drives continuation logic
 
@@ -42,23 +42,23 @@ OpenCode is a terminal-first AI coding agent that gives large language models th
 ### 1.3 Architecture at 10,000 Feet
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     CLI / TUI / Web                      │
-│                    (opencode-ai/sdk)                      │
-└──────────────────────┬──────────────────────────────────┘
-                       │ HTTP / in-process fetch
-┌──────────────────────▼──────────────────────────────────┐
-│                   Hono HTTP Server                        │
-│         (server/server.ts — routes, OpenAPI)              │
-├─────────────────────────────────────────────────────────┤
-│ Session Layer   │ Agent Layer   │ Provider Layer          │
-│ (session/*.ts)  │ (agent.ts)    │ (provider/provider.ts)  │
-├─────────────────┴───────────────┴───────────────────────┤
-│            Tool Registry  (tool/registry.ts)             │
-│   bash · read · write · edit · grep · glob · webfetch …  │
-├─────────────────────────────────────────────────────────┤
-│          Permission · Bus · Snapshot · MCP · LSP          │
-└─────────────────────────────────────────────────────────┘
++---------------------------------------------------------+
+|                     CLI / TUI / Web                      |
+|                    (opencode-ai/sdk)                      |
++----------------------+----------------------------------+
+                       | HTTP / in-process fetch
++----------------------v----------------------------------+
+|                   Hono HTTP Server                        |
+|         (server/server.ts — routes, OpenAPI)              |
++---------------------------------------------------------+
+| Session Layer   | Agent Layer   | Provider Layer          |
+| (session/*.ts)  | (agent.ts)    | (provider/provider.ts)  |
++-----------------+---------------+-----------------------+
+|            Tool Registry  (tool/registry.ts)             |
+|   bash · read · write · edit · grep · glob · webfetch ...  |
++---------------------------------------------------------+
+|          Permission · Bus · Snapshot · MCP · LSP          |
++---------------------------------------------------------+
 ```
 
 ### 1.4 How OpenCode Differs from Claude Code
@@ -80,13 +80,13 @@ To understand why the codebase is structured the way it is, it helps to contrast
 $ opencode
 > Build a React component that renders a sortable table
 
-⟳ Reading project structure...
-⟳ Reading src/components/Table.tsx
-⟳ Writing src/components/SortableTable.tsx
-⟳ Running: npm run typecheck
-⟳ Edit src/components/SortableTable.tsx (fixing type error)
-⟳ Running: npm run typecheck
-✓ Done — created src/components/SortableTable.tsx
+~ Reading project structure...
+~ Reading src/components/Table.tsx
+~ Writing src/components/SortableTable.tsx
+~ Running: npm run typecheck
+~ Edit src/components/SortableTable.tsx (fixing type error)
+~ Running: npm run typecheck
+[x] Done — created src/components/SortableTable.tsx
 ```
 
 The user types one sentence and watches a stream of status updates scroll past. It looks almost trivially simple — but behind those seven lines, the entire system activates:
@@ -107,7 +107,7 @@ The user types one sentence and watches a stream of status updates scroll past. 
 12. **Compaction** (if needed, `session/compaction.ts`) — summarizes earlier messages when the context window fills
 13. **Completion** — the model returns `finishReason === "stop"` and the loop exits
 
-Steps 7–11 repeat multiple times. What the user experiences as "a few status lines" is often 3–8 full round trips to the LLM, each with hundreds of tool calls in between.
+Steps 7-11 repeat multiple times. What the user experiences as "a few status lines" is often 3-8 full round trips to the LLM, each with hundreds of tool calls in between.
 
 ### 1.6 A Prompt's Journey Through Every Layer
 
@@ -115,72 +115,72 @@ The following diagram traces a single user prompt from entry to exit, showing ev
 
 ```
 User Input
-    │
-    ▼
-┌────────────────────┐    Ch 4
-│ CLI Entry (yargs)  │──────────────────────────────────────────┐
-└────────┬───────────┘                                          │
-         ▼                                                      │
-┌────────────────────┐    Ch 5                                  │
-│ Bootstrap          │    · project discovery                   │
-│                    │    · database init                       │
-│                    │    · server start                        │
-└────────┬───────────┘                                          │
-         ▼                                                      │
-┌────────────────────┐    Ch 6, 11                              │
-│ Config + Agent     │    · load opencode.json                  │
-│ Resolution         │    · resolve build agent                 │
-│                    │    · merge permissions                   │
-└────────┬───────────┘                                          │
-         ▼                                                      │
-┌────────────────────┐    Ch 14                                 │
-│ Prompt Ingestion   │    · parse user text                     │
-│                    │    · resolve @file references             │
-│                    │    · store user message                  │
-└────────┬───────────┘                                          │
-         ▼                                                      │
-┌────────────────────────────────────────────┐                  │
-│           AGENTIC LOOP (Ch 18)             │                  │
-│  ┌──────────────────────────────────────┐  │                  │
-│  │ System Prompt Assembly (Ch 15)       │  │                  │
-│  │  · base rules + tools + environment │  │                  │
-│  └──────────┬───────────────────────────┘  │                  │
-│             ▼                              │                  │
-│  ┌──────────────────────────────────────┐  │                  │
-│  │ LLM Call (Ch 8, 9, 16)              │  │                  │
-│  │  · provider → model → streamText()  │  │                  │
-│  └──────────┬───────────────────────────┘  │                  │
-│             ▼                              │                  │
-│  ┌──────────────────────────────────────┐  │                  │
-│  │ Stream Processing (Ch 17)           │  │                  │
-│  │  · tokens → parts → bus events      │  │                  │
-│  └──────────┬───────────────────────────┘  │                  │
-│             ▼                              │                  │
-│  ┌──────────────────────────────────────┐  │                  │
-│  │ Tool Execution (Ch 19–24)           │  │                  │
-│  │  · permission check (Ch 25)         │  │                  │
-│  │  · run tool → return result         │  │                  │
-│  │  · snapshot file changes (Ch 27)    │  │                  │
-│  └──────────┬───────────────────────────┘  │                  │
-│             ▼                              │                  │
-│  finishReason === "tool-calls"? ──Yes──▶ LOOP │              │
-│             │ No                           │                  │
-│             ▼                              │                  │
-│  Compaction needed? (Ch 28) ──Yes──▶ LOOP  │                 │
-│             │ No                           │                  │
-│             ▼                              │                  │
-│          EXIT LOOP                         │                  │
-└────────────────────────────────────────────┘                  │
-         │                                                      │
-         ▼                                                      │
-┌────────────────────┐    Ch 12, 13                             │
-│ Session Persist    │    · store assistant message             │
-│                    │    · update session title                │
-└────────┬───────────┘                                          │
-         ▼                                                      │
-┌────────────────────┐    Ch 26, 31–33                          │
-│ Bus → Client       │    · SSE events → TUI/web/SDK           │
-└────────────────────┘                                          │
+    |
+    v
++--------------------+    Ch 4
+| CLI Entry (yargs)  |------------------------------------------+
++--------+-----------+                                          |
+         v                                                      |
++--------------------+    Ch 5                                  |
+| Bootstrap          |    · project discovery                   |
+|                    |    · database init                       |
+|                    |    · server start                        |
++--------+-----------+                                          |
+         v                                                      |
++--------------------+    Ch 6, 11                              |
+| Config + Agent     |    · load opencode.json                  |
+| Resolution         |    · resolve build agent                 |
+|                    |    · merge permissions                   |
++--------+-----------+                                          |
+         v                                                      |
++--------------------+    Ch 14                                 |
+| Prompt Ingestion   |    · parse user text                     |
+|                    |    · resolve @file references             |
+|                    |    · store user message                  |
++--------+-----------+                                          |
+         v                                                      |
++--------------------------------------------+                  |
+|           AGENTIC LOOP (Ch 18)             |                  |
+|  +--------------------------------------+  |                  |
+|  | System Prompt Assembly (Ch 15)       |  |                  |
+|  |  · base rules + tools + environment |  |                  |
+|  +----------+---------------------------+  |                  |
+|             v                              |                  |
+|  +--------------------------------------+  |                  |
+|  | LLM Call (Ch 8, 9, 16)              |  |                  |
+|  |  · provider --> model --> streamText()  |  |                  |
+|  +----------+---------------------------+  |                  |
+|             v                              |                  |
+|  +--------------------------------------+  |                  |
+|  | Stream Processing (Ch 17)           |  |                  |
+|  |  · tokens --> parts --> bus events      |  |                  |
+|  +----------+---------------------------+  |                  |
+|             v                              |                  |
+|  +--------------------------------------+  |                  |
+|  | Tool Execution (Ch 19-24)           |  |                  |
+|  |  · permission check (Ch 25)         |  |                  |
+|  |  · run tool --> return result         |  |                  |
+|  |  · snapshot file changes (Ch 27)    |  |                  |
+|  +----------+---------------------------+  |                  |
+|             v                              |                  |
+|  finishReason === "tool-calls"? --Yes--> LOOP |              |
+|             | No                           |                  |
+|             v                              |                  |
+|  Compaction needed? (Ch 28) --Yes--> LOOP  |                 |
+|             | No                           |                  |
+|             v                              |                  |
+|          EXIT LOOP                         |                  |
++--------------------------------------------+                  |
+         |                                                      |
+         v                                                      |
++--------------------+    Ch 12, 13                             |
+| Session Persist    |    · store assistant message             |
+|                    |    · update session title                |
++--------+-----------+                                          |
+         v                                                      |
++--------------------+    Ch 26, 31-33                          |
+| Bus --> Client       |    · SSE events --> TUI/web/SDK           |
++--------------------+                                          |
 ```
 
 Every box in this diagram is a chapter in this book. By the time you reach the final chapter you'll have traced a prompt from the user's keystroke all the way to the model's response and back.

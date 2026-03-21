@@ -174,7 +174,7 @@ The `plan_exit` tool enables agent transitions. When invoked:
 2. If confirmed, a synthetic user message is injected with `agent: "build"`
 3. The loop picks up the new agent on the next iteration
 
-This creates a plan → build workflow: the `plan` agent researches and writes a plan file, then `plan_exit` switches to `build` which executes the plan.
+This creates a plan --> build workflow: the `plan` agent researches and writes a plan file, then `plan_exit` switches to `build` which executes the plan.
 
 ---
 
@@ -210,29 +210,29 @@ The result is a `Record<string, AITool>` where each key is a tool name and each 
 The data flow between the loop and processor on each iteration:
 
 ```
-┌─── LOOP ITERATION ───────────────────────────┐
-│                                               │
-│  1. Load messages (filterCompacted)           │
-│  2. Resolve agent, model, tools               │
-│  3. Build system prompt                       │
-│  4. Create fresh Processor                    │
-│                                               │
-│  ┌─── PROCESSOR ──────────────────────────┐   │
-│  │                                         │   │
-│  │  stream = LLM.stream(messages, tools)   │   │
-│  │  for await (event of stream.fullStream) │   │
-│  │    text-delta  → Bus.publish(PartDelta) │   │
-│  │    tool-call   → execute + updatePart   │   │
-│  │    finish-step → snapshot + cost        │   │
-│  │                                         │   │
-│  │  return "continue" | "compact" | "stop" │   │
-│  └─────────────────────────────────────────┘   │
-│                                               │
-│  "continue" → goto 1 (re-read messages)      │
-│  "compact"  → SessionCompaction.process()     │
-│  "stop"     → break                          │
-│                                               │
-└───────────────────────────────────────────────┘
++--- LOOP ITERATION ---------------------------+
+|                                               |
+|  1. Load messages (filterCompacted)           |
+|  2. Resolve agent, model, tools               |
+|  3. Build system prompt                       |
+|  4. Create fresh Processor                    |
+|                                               |
+|  +--- PROCESSOR --------------------------+   |
+|  |                                         |   |
+|  |  stream = LLM.stream(messages, tools)   |   |
+|  |  for await (event of stream.fullStream) |   |
+|  |    text-delta  --> Bus.publish(PartDelta) |   |
+|  |    tool-call   --> execute + updatePart   |   |
+|  |    finish-step --> snapshot + cost        |   |
+|  |                                         |   |
+|  |  return "continue" | "compact" | "stop" |   |
+|  +-----------------------------------------+   |
+|                                               |
+|  "continue" --> goto 1 (re-read messages)      |
+|  "compact"  --> SessionCompaction.process()     |
+|  "stop"     --> break                          |
+|                                               |
++-----------------------------------------------+
 ```
 
 The key insight is that the processor's return value controls the loop. The processor is stateless between iterations -- a new one is created each time, with fresh `toolcalls`, `snapshot`, and `blocked` state.

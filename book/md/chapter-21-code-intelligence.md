@@ -95,7 +95,7 @@ codesearch({ query: "React useState hook examples", tokensNum: 5000 })
 
 Key behaviors:
 - **External API** — sends a JSON-RPC request to `https://mcp.exa.ai/mcp` using the MCP protocol
-- **Token control** — `tokensNum` parameter (1,000–50,000) controls how much context to return
+- **Token control** — `tokensNum` parameter (1,000-50,000) controls how much context to return
 - **Permission required** — requires user approval; "always allow" auto-approves all queries
 - **SSE response parsing** — the API returns Server-Sent Events which are parsed to extract the content
 - **30-second timeout** — requests abort after 30 seconds

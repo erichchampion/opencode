@@ -94,37 +94,37 @@ The system uses `NamedError` from `@opencode-ai/util/error`:
 
 ```
 process.start
-    │
-    ▼
-┌───────────────────────┐
-│ Global Error Handlers │  process.on("unhandledRejection", ...)
-│                       │  process.on("uncaughtException", ...)
-└───────────┬───────────┘
-            ▼
-┌───────────────────────┐
-│ yargs.parse()         │  Builds CLI parser with 20+ commands
-└───────────┬───────────┘
-            ▼
-┌───────────────────────┐
-│ .middleware()          │  Runs BEFORE any command handler:
-│                       │  · Log.init() — configure logging
-│                       │  · Set process.env markers (AGENT, OPENCODE, PID)
-│                       │  · JsonMigration.run() — first-time DB setup
-│                       │  · Installation.check() — detect install mode
-└───────────┬───────────┘
-            ▼
-┌───────────────────────┐
-│ Command Handler       │  e.g., RunCommand, TuiCommand, ServeCommand
-│                       │  · bootstrap(directory, callback)
-│                       │  · Instance.provide() → Instance.dispose()
-└───────────┬───────────┘
-            ▼
-┌───────────────────────┐
-│ finally block         │  process.exit() — kills hanging subprocesses
-└───────────────────────┘  (MCP docker, LSP servers, etc.)
+    |
+    v
++-----------------------+
+| Global Error Handlers |  process.on("unhandledRejection", ...)
+|                       |  process.on("uncaughtException", ...)
++-----------+-----------+
+            v
++-----------------------+
+| yargs.parse()         |  Builds CLI parser with 20+ commands
++-----------+-----------+
+            v
++-----------------------+
+| .middleware()          |  Runs BEFORE any command handler:
+|                       |  · Log.init() — configure logging
+|                       |  · Set process.env markers (AGENT, OPENCODE, PID)
+|                       |  · JsonMigration.run() — first-time DB setup
+|                       |  · Installation.check() — detect install mode
++-----------+-----------+
+            v
++-----------------------+
+| Command Handler       |  e.g., RunCommand, TuiCommand, ServeCommand
+|                       |  · bootstrap(directory, callback)
+|                       |  · Instance.provide() --> Instance.dispose()
++-----------+-----------+
+            v
++-----------------------+
+| finally block         |  process.exit() — kills hanging subprocesses
++-----------------------+  (MCP docker, LSP servers, etc.)
 ```
 
-The `middleware → command → finally` structure ensures that:
+The `middleware --> command --> finally` structure ensures that:
 1. Logging and environment are always set up first
 2. Migration runs before any database access
 3. Process always exits cleanly, even if MCP containers are still running

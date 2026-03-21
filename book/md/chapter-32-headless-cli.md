@@ -49,7 +49,7 @@ Files can be attached via `--file`:
 
 ---
 
-## 🧪 Test References
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|

@@ -100,7 +100,7 @@ Used by: `Agent`, `ToolRegistry`, `Config`, `Skill`, and more. Each creates scop
 
 ---
 
-## 🧪 Test References
+## Test References
 
 The test fixture system itself demonstrates the `Instance.provide()` pattern:
 
@@ -128,43 +128,43 @@ export async function tmpdir(options?) {
 }
 ```
 
-This mirrors the production `bootstrap()` → `Instance.provide()` → `Instance.dispose()` lifecycle.
+This mirrors the production `bootstrap()` --> `Instance.provide()` --> `Instance.dispose()` lifecycle.
 
-### 5.6 Instance Lifecycle Diagram: Provide → Use → Dispose
+### 5.6 Instance Lifecycle Diagram: Provide --> Use --> Dispose
 
 ```
 Instance.provide({ directory, init, fn })
-    │
-    ├── 1. Filesystem.resolve(directory) — normalize path
-    │
-    ├── 2. Check cache (Map<string, Promise<Context>>)
-    │       │
-    │       ├── cache HIT: reuse existing context
-    │       │
-    │       └── cache MISS:
-    │             └── boot({ directory, init })
-    │                   ├── Project.fromDirectory(directory)
-    │                   │     ├── Detect VCS (git / none)
-    │                   │     ├── Resolve worktree root
-    │                   │     └── Load or create project record (SQLite)
-    │                   │
-    │                   ├── context.provide(ctx, init)
-    │                   │     └── init() runs inside ALS context
-    │                   │           ├── LSP.start()
-    │                   │           ├── MCP.init()
-    │                   │           └── FileWatcher.start()
-    │                   │
-    │                   └── Return { directory, worktree, project }
-    │
-    ├── 3. context.provide(ctx, fn) — run user callback inside ALS
-    │       └── fn() has access to Instance.directory, .worktree, .project, .state()
-    │
-    └── (on exit or explicit call)
+    |
+    +-- 1. Filesystem.resolve(directory) — normalize path
+    |
+    +-- 2. Check cache (Map<string, Promise<Context>>)
+    |       |
+    |       +-- cache HIT: reuse existing context
+    |       |
+    |       +-- cache MISS:
+    |             +-- boot({ directory, init })
+    |                   +-- Project.fromDirectory(directory)
+    |                   |     +-- Detect VCS (git / none)
+    |                   |     +-- Resolve worktree root
+    |                   |     +-- Load or create project record (SQLite)
+    |                   |
+    |                   +-- context.provide(ctx, init)
+    |                   |     +-- init() runs inside ALS context
+    |                   |           +-- LSP.start()
+    |                   |           +-- MCP.init()
+    |                   |           +-- FileWatcher.start()
+    |                   |
+    |                   +-- Return { directory, worktree, project }
+    |
+    +-- 3. context.provide(ctx, fn) — run user callback inside ALS
+    |       +-- fn() has access to Instance.directory, .worktree, .project, .state()
+    |
+    +-- (on exit or explicit call)
         Instance.dispose()
-            ├── State.dispose(directory) — runs all state destructors
-            ├── disposeInstance(directory) — cleanup Effect runtime
-            ├── cache.delete(directory)
-            └── GlobalBus.emit("server.instance.disposed")
+            +-- State.dispose(directory) — runs all state destructors
+            +-- disposeInstance(directory) — cleanup Effect runtime
+            +-- cache.delete(directory)
+            +-- GlobalBus.emit("server.instance.disposed")
 ```
 
 **Key insight:** The `cache` Map ensures that only one `Instance` exists per directory at any time. If two requests arrive for the same project, the second reuses the first's context rather than re-running `boot()`.

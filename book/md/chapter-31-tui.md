@@ -66,11 +66,11 @@ The input area supports:
 When `Permission.Event.Asked` fires, the TUI displays an overlay:
 
 ```
-╭─────────────────────────────────────────────╮
-│  Allow bash: npm install gray-matter ?      │
-│                                             │
-│  [y] Allow once  [a] Always  [n] Reject     │
-╰─────────────────────────────────────────────╯
++---------------------------------------------+
+|  Allow bash: npm install gray-matter ?      |
+|                                             |
+|  [y] Allow once  [a] Always  [n] Reject     |
++---------------------------------------------+
 ```
 
 The overlay blocks further input until the user responds. "Always" replies are stored in the approved ruleset for the current project.

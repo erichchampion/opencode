@@ -160,9 +160,9 @@ Rules are evaluated in order, with the last matching rule winning. This enables 
 ### Arity-Based Command Grouping
 
 `BashArity.prefix()` extracts the significant prefix of a command for permission matching:
-- `npm install gray-matter` → `npm install *` (approve any npm install)
-- `git commit -m "..."` → `git commit *`
-- `rm -rf node_modules` → `rm *`
+- `npm install gray-matter` --> `npm install *` (approve any npm install)
+- `git commit -m "..."` --> `git commit *`
+- `rm -rf node_modules` --> `rm *`
 
 This lets users grant categorical approvals without approving every individual invocation.
 

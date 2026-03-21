@@ -12,7 +12,7 @@ OpenCode's configuration system supports multiple sources (global config, projec
 
 - Configuration file locations and formats (`opencode.json`, `.opencode/config.json`)
 - The Zod-based config schema
-- Merge order: defaults → global → project → environment → CLI flags
+- Merge order: defaults --> global --> project --> environment --> CLI flags
 - How `Config.get()` caches and provides configuration
 - Configuration hot-reloading
 
@@ -62,13 +62,13 @@ Returns the merged, validated configuration. Uses `Instance.state()` for caching
 
 ---
 
-## 🧪 Test References
+## Test References
 
 Configuration has the most extensive test coverage in the project:
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/config/config.test.ts` | 2,078 | Config loading (JSON/JSONC), merging multiple files with precedence, env var substitution (`{env:VAR}`), file inclusion (`{file:path}`), schema validation, agent/command configuration from `.opencode/` directories, managed settings, dependency installation serialization, Windows path handling, migration of legacy fields (`autoshare` → `share`, `mode` → `agent`) |
+| `test/config/config.test.ts` | 2,078 | Config loading (JSON/JSONC), merging multiple files with precedence, env var substitution (`{env:VAR}`), file inclusion (`{file:path}`), schema validation, agent/command configuration from `.opencode/` directories, managed settings, dependency installation serialization, Windows path handling, migration of legacy fields (`autoshare` --> `share`, `mode` --> `agent`) |
 | `test/config/markdown.test.ts` | 228 | Front matter parsing for markdown-based agent/command definitions, edge cases (empty frontmatter, no frontmatter, weird model IDs) |
 | `test/config/tui.test.ts` | 510 | TUI-specific key bindings, theme configuration, scroll settings |
 | `test/config/agent-color.test.ts` | 71 | Agent color assignment and cycling |
@@ -173,7 +173,7 @@ OpenCode supports several environment variable patterns:
 Environment variables take precedence over config file values. The merge order is:
 
 ```
-defaults → global config → project config → environment variables → CLI flags
+defaults --> global config --> project config --> environment variables --> CLI flags
 ```
 
 ### 6.7 TUI-Specific Configuration

@@ -92,7 +92,7 @@ Real-time communication uses SSE:
 
 ---
 
-## 🧪 Test References
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
@@ -114,35 +114,35 @@ Let's trace what happens when the SDK calls `sdk.session.prompt(sessionID, { par
 
 ```
 SDK client
-    │  POST /session/01HZ.../prompt
-    │  Body: { parts: [{ type: "text", text: "Build me a blog" }] }
-    ▼
-┌─────────────────────┐
-│ Hono middleware chain│
-│  1. CORS check       │
-│  2. Auth (if set)    │
-│  3. Logging (timing) │
-│  4. Directory resolve│
-│  5. Instance.provide │
-└────────┬────────────┘
-         ▼
-┌─────────────────────┐
-│ SessionRoutes.prompt │  server/routes/session.ts
-│  1. validator(input) │  Validates input via Zod schema
-│  2. SessionPrompt    │  Calls SessionPrompt.prompt(input)
-│     .prompt(input)   │    → creates user message
-│                      │    → enters agentic loop
-│  3. Return 200 OK    │  Returns the user message immediately
-└─────────────────────┘
-         │
-         │  (meanwhile, the loop runs asynchronously)
-         │
-         ▼
-┌─────────────────────┐
-│ Bus.publish(events)  │  Session events stream to:
-│  → SSE subscribers   │  → EventRoutes SSE endpoint
-│  → TUI renderer      │  → in-process subscriber
-└─────────────────────┘
+    |  POST /session/01HZ.../prompt
+    |  Body: { parts: [{ type: "text", text: "Build me a blog" }] }
+    v
++---------------------+
+| Hono middleware chain|
+|  1. CORS check       |
+|  2. Auth (if set)    |
+|  3. Logging (timing) |
+|  4. Directory resolve|
+|  5. Instance.provide |
++--------+------------+
+         v
++---------------------+
+| SessionRoutes.prompt |  server/routes/session.ts
+|  1. validator(input) |  Validates input via Zod schema
+|  2. SessionPrompt    |  Calls SessionPrompt.prompt(input)
+|     .prompt(input)   |    --> creates user message
+|                      |    --> enters agentic loop
+|  3. Return 200 OK    |  Returns the user message immediately
++---------------------+
+         |
+         |  (meanwhile, the loop runs asynchronously)
+         |
+         v
++---------------------+
+| Bus.publish(events)  |  Session events stream to:
+|  --> SSE subscribers   |  --> EventRoutes SSE endpoint
+|  --> TUI renderer      |  --> in-process subscriber
++---------------------+
 ```
 
 The key design insight: the HTTP response returns *immediately* with the user message. The LLM processing continues asynchronously, with results streamed back via SSE events. This keeps API calls fast and non-blocking.
@@ -173,21 +173,21 @@ The `WorkspaceRouterMiddleware` (`control-plane/workspace-router-middleware.ts`)
 
 ```
 Client Request
-    │
-    ▼
-┌─────────────────────────┐
-│ WorkspaceRouterMiddleware│
-│                         │
-│  1. Extract workspace ID │  from header or URL
-│     (x-opencode-workspace│
-│      or query param)     │
-│                         │
-│  2. Lookup workspace     │  Find workspace server by ID
-│     server               │
-│                         │
-│  3. If local workspace:  │  → serve directly via Instance.provide()
-│     If remote workspace: │  → proxy to remote workspace server
-└─────────────────────────┘
+    |
+    v
++-------------------------+
+| WorkspaceRouterMiddleware|
+|                         |
+|  1. Extract workspace ID |  from header or URL
+|     (x-opencode-workspace|
+|      or query param)     |
+|                         |
+|  2. Lookup workspace     |  Find workspace server by ID
+|     server               |
+|                         |
+|  3. If local workspace:  |  --> serve directly via Instance.provide()
+|     If remote workspace: |  --> proxy to remote workspace server
++-------------------------+
 ```
 
 This enables the **control plane** architecture: a central server can host multiple workspaces, each potentially running on different machines. The middleware transparently routes requests:

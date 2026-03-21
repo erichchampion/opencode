@@ -47,7 +47,7 @@ The processor triggers emergency compaction rather than failing.
 
 ---
 
-## 🧪 Test References
+## Test References
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|

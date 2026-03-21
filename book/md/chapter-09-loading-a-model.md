@@ -59,7 +59,7 @@ Models are specified as `providerID/modelID`:
 
 ---
 
-## 🧪 Test References
+## Test References
 
 Model resolution is tested extensively in the provider suite:
 
@@ -76,20 +76,20 @@ Let's trace a concrete model resolution:
 
 ```
 User: --model anthropic/claude-sonnet-4-20250514
-    │
-    ▼
+    |
+    v
 Provider.parseModel("anthropic/claude-sonnet-4-20250514")
-    │  Returns: { providerID: "anthropic", modelID: "claude-sonnet-4-20250514" }
-    ▼
+    |  Returns: { providerID: "anthropic", modelID: "claude-sonnet-4-20250514" }
+    v
 Provider.getModel("anthropic", "claude-sonnet-4-20250514")
-    │
-    ├── 1. Check models.dev data for "anthropic"
-    │       → finds model entry with capabilities, cost, limits
-    │
-    ├── 2. Apply config overrides (if any)
-    │       → user may override temperature, max_tokens, etc.
-    │
-    └── 3. Return Provider.Model:
+    |
+    +-- 1. Check models.dev data for "anthropic"
+    |       --> finds model entry with capabilities, cost, limits
+    |
+    +-- 2. Apply config overrides (if any)
+    |       --> user may override temperature, max_tokens, etc.
+    |
+    +-- 3. Return Provider.Model:
             {
               id: "claude-sonnet-4-20250514",
               providerID: "anthropic",
@@ -98,14 +98,14 @@ Provider.getModel("anthropic", "claude-sonnet-4-20250514")
               cost: { input: 3.0, output: 15.0 },  // per million tokens
               limit: { context: 200000, output: 64000 }
             }
-    ▼
+    v
 Provider.getLanguage(model)
-    │
-    ├── 1. Check CUSTOM_LOADERS for "anthropic" → none
-    ├── 2. Lookup BUNDLED_PROVIDERS → createAnthropic
-    ├── 3. Call createAnthropic({ apiKey, baseURL })
-    └── 4. Return provider.languageModel("claude-sonnet-4-20250514")
-           → Vercel AI SDK LanguageModel ready for streamText()
+    |
+    +-- 1. Check CUSTOM_LOADERS for "anthropic" --> none
+    +-- 2. Lookup BUNDLED_PROVIDERS --> createAnthropic
+    +-- 3. Call createAnthropic({ apiKey, baseURL })
+    +-- 4. Return provider.languageModel("claude-sonnet-4-20250514")
+           --> Vercel AI SDK LanguageModel ready for streamText()
 ```
 
 ### 9.5 Fuzzy Model Matching via fuzzysort
@@ -114,15 +114,15 @@ Users don't have to type exact model IDs. The `fuzzysort` library provides intel
 
 ```
 User types: "sonnet"
-    │
-    ▼
+    |
+    v
 fuzzysort.go("sonnet", allModels, { key: "id", threshold: -10000 })
-    │
-    ├── Matches: "claude-sonnet-4-20250514" (score: -50)
-    ├── Matches: "claude-3-5-sonnet-20241022" (score: -80)
-    └── Matches: "claude-3-sonnet-20240229" (score: -100)
-    │
-    ▼
+    |
+    +-- Matches: "claude-sonnet-4-20250514" (score: -50)
+    +-- Matches: "claude-3-5-sonnet-20241022" (score: -80)
+    +-- Matches: "claude-3-sonnet-20240229" (score: -100)
+    |
+    v
 Best match: "claude-sonnet-4-20250514"
 ```
 

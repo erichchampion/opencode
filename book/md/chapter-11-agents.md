@@ -82,13 +82,13 @@ Users can define custom agents in `opencode.json`:
 
 ---
 
-## 🧪 Test References
+## Test References
 
 The agent test is one of the most instructive tests in the codebase — it systematically demonstrates every concept in this chapter:
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/agent/agent.test.ts` | 716 | **All 7 built-in agents** (build, plan, general, explore, compaction, title, summary) with correct default properties. Custom agent creation from config. Permission merging (agent-level, global-level). Agent disabling. Mode overrides. Name/prompt/steps overrides. Default agent resolution (fallback to plan when build disabled, error when all disabled). Legacy `tools` config → permission conversion. `Truncate.GLOB` edge cases for external directory permissions. |
+| `test/agent/agent.test.ts` | 716 | **All 7 built-in agents** (build, plan, general, explore, compaction, title, summary) with correct default properties. Custom agent creation from config. Permission merging (agent-level, global-level). Agent disabling. Mode overrides. Name/prompt/steps overrides. Default agent resolution (fallback to plan when build disabled, error when all disabled). Legacy `tools` config --> permission conversion. `Truncate.GLOB` edge cases for external directory permissions. |
 
 **Key test patterns worth highlighting:**
 - `evalPerm(agent, "edit")` — one-line permission evaluation helper
@@ -104,31 +104,31 @@ When a tool call needs permission (e.g., `bash("rm -rf node_modules")`), the sys
 
 ```
 PermissionNext.evaluate(rules, "bash", "rm -rf node_modules")
-    │
-    ├── 1. Filter rules to permission="bash"
-    │
-    ├── 2. For each matching rule, check if pattern matches:
-    │       Rule { permission: "bash", pattern: "git *", action: "allow" }
-    │         → "rm -rf node_modules" matches "git *"? NO
-    │       Rule { permission: "bash", pattern: "rm -rf *", action: "deny" }
-    │         → "rm -rf node_modules" matches "rm -rf *"? YES → "deny"
-    │       Rule { permission: "bash", pattern: "*", action: "ask" }
-    │         → "rm -rf node_modules" matches "*"? YES → "ask"
-    │
-    ├── 3. Last matching rule wins (not first!)
-    │       Both "deny" and "ask" matched, but "ask" appeared later
-    │       → Result: "ask"
-    │
-    │   WAIT — why did "deny" not win?
-    │   Because rules are evaluated top-to-bottom and the LAST match wins.
-    │   This means more specific rules should come FIRST, with fallbacks LAST.
-    │
-    └── If no rules match → default is "ask"
+    |
+    +-- 1. Filter rules to permission="bash"
+    |
+    +-- 2. For each matching rule, check if pattern matches:
+    |       Rule { permission: "bash", pattern: "git *", action: "allow" }
+    |         --> "rm -rf node_modules" matches "git *"? NO
+    |       Rule { permission: "bash", pattern: "rm -rf *", action: "deny" }
+    |         --> "rm -rf node_modules" matches "rm -rf *"? YES --> "deny"
+    |       Rule { permission: "bash", pattern: "*", action: "ask" }
+    |         --> "rm -rf node_modules" matches "*"? YES --> "ask"
+    |
+    +-- 3. Last matching rule wins (not first!)
+    |       Both "deny" and "ask" matched, but "ask" appeared later
+    |       --> Result: "ask"
+    |
+    |   WAIT — why did "deny" not win?
+    |   Because rules are evaluated top-to-bottom and the LAST match wins.
+    |   This means more specific rules should come FIRST, with fallbacks LAST.
+    |
+    +-- If no rules match --> default is "ask"
 ```
 
 **For bash commands, arity matters.** The `BashArity.prefix()` function extracts command prefixes for matching:
-- `git checkout main` → matches rules for `git checkout *` or `git *`
-- `aws s3 ls` → matches `aws s3 *` or `aws *`
+- `git checkout main` --> matches rules for `git checkout *` or `git *`
+- `aws s3 ls` --> matches `aws s3 *` or `aws *`
 - arity-1 commands: `ls`, `cat`, `echo` — matched by `*`
 - arity-2 commands: `git`, `docker`, `npm` — matched by `git *`
 - arity-3 commands: `aws s3`, `npm run` — matched by `aws s3 *`
@@ -139,7 +139,7 @@ This is tested exhaustively in `test/permission/next.test.ts` (1,033 lines).
 
 The TUI supports switching between agents using the **Tab key** (configurable via `tui.keybinds.switch_agent`):
 
-1. User presses Tab → the agent picker appears
+1. User presses Tab --> the agent picker appears
 2. Picker shows all `mode: "primary"` agents that are not `hidden`
 3. User selects an agent (e.g., switches from `build` to `plan`)
 4. The next prompt uses the selected agent's configuration
