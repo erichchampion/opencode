@@ -154,11 +154,3 @@ The config system allows per-model overrides that layer on top of the models.dev
 ```
 
 The override merge happens during `Provider.getModel()` — models.dev provides the base metadata, and config overrides layer on top. This is tested in `test/provider/provider.test.ts` with cases like "config max_tokens overrides default".
-
----
-
-## Questions for Expansion
-
-- [x] Trace a specific model resolution end-to-end with code
-- [x] Explain fuzzy model matching via fuzzysort
-- [x] Detail the model override system in config

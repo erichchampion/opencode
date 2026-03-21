@@ -204,11 +204,3 @@ case "anthropic":
 ```
 
 The key design principle: **application code never knows which provider it's talking to.** All provider differences are handled in `ProviderTransform`, keeping `session/llm.ts` and the rest of the codebase provider-agnostic.
-
----
-
-## Questions for Expansion
-
-- [x] Walk through adding a new provider
-- [x] Detail the SSE timeout wrapper (`wrapSSE()`)
-- [x] Explain the `ProviderTransform` message/options transformation layer

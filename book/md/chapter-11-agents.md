@@ -187,11 +187,3 @@ You are a careful code reviewer. Focus on:
 ```
 
 The markdown format (parsed by `config/markdown.ts`, tested in `test/config/markdown.test.ts`) allows mixing structured config with freeform prompt text.
-
----
-
-## Questions for Expansion
-
-- [x] Detail the permission rule evaluation algorithm
-- [x] Show how agent switching works in the TUI (Tab key)
-- [x] Walk through the `Agent.generate()` function for AI-generated agents

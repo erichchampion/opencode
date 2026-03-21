@@ -204,11 +204,3 @@ Key configurable aspects:
 - **Agent colors**: each agent gets a distinct color for visual identification in the TUI
 
 The `test/config/tui.test.ts` (510 lines) covers all these options extensively.
-
----
-
-## Questions for Expansion
-
-- [x] Provide a minimal and a full example `opencode.json`
-- [x] Document the environment variable overrides (`OPENCODE_*`, `OPENCODE_FLAG_*`)
-- [x] Explain the TUI-specific configuration schema

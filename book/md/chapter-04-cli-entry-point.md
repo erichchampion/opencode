@@ -167,11 +167,3 @@ The `Installation` namespace (`installation/installation.ts`) detects how OpenCo
 | Log initialization | `packages/opencode/src/util/log.ts` |
 | Database migration | `packages/opencode/src/storage/json-migration.ts` |
 | Installation detection | `packages/opencode/src/installation/installation.ts` |
-
----
-
-## Questions for Expansion
-
-- [x] Show the full lifecycle diagram: process start → middleware → command → exit
-- [x] Detail the migration logic — what data is being migrated from the JSON format?
-- [x] Explain `Installation.isLocal()` and its effect on behavior

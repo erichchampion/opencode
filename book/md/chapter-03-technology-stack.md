@@ -147,12 +147,3 @@ This is different from `workspace:*` (which points to a local package) — `cata
 | Drizzle | `storage/db.ts` |
 | Zod | Throughout; `config/config.ts`, `session/schema.ts` |
 | yargs | `src/index.ts` |
-
----
-
-## Questions for Expansion
-
-- [ ] Version compatibility notes (AI SDK v5 breaking changes)
-- [x] Deep dive on `wrapLanguageModel` middleware pattern
-- [x] Comparison: why Hono over Express/Fastify
-- [x] The `catalog:` workspace dependency resolution mechanism

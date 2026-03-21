@@ -267,11 +267,3 @@ bind<F extends (...args: any[]) => any>(fn: F): F {
 ```
 
 This captures the current context and re-establishes it when the callback fires.
-
----
-
-## Questions for Expansion
-
-- [x] Diagram the Instance provide/dispose lifecycle
-- [x] Detail the SQL schema (SessionTable, MessageTable, PartTable)
-- [x] Explain the AsyncLocalStorage mechanics behind Instance

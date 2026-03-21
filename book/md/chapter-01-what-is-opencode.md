@@ -187,14 +187,6 @@ Every box in this diagram is a chapter in this book. By the time you reach the f
 
 ---
 
-## Questions for Expansion
-
-- [x] Include a concrete before/after comparison: what does the user experience look like vs. what happens inside?
-- [x] Diagram: a single prompt's journey through all layers
-- [ ] Timeline: key milestones in the project's development
-
----
-
 ## Source File Map
 
 | Concept | Primary File(s) |
@@ -205,10 +197,3 @@ Every box in this diagram is a chapter in this book. By the time you reach the f
 | Agent definitions | `packages/opencode/src/agent/agent.ts` |
 | Provider layer | `packages/opencode/src/provider/provider.ts` |
 
----
-
-## Questions for Expansion
-
-- [x] Include a concrete before/after comparison: what does the user experience look like vs. what happens inside?
-- [x] Diagram: a single prompt's journey through all layers
-- [ ] Timeline: key milestones in the project's development

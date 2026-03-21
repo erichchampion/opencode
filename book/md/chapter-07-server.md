@@ -196,11 +196,3 @@ This enables the **control plane** architecture: a central server can host multi
 - **Remote workspace**: the request is proxied to the workspace's dedicated server, using `hono/proxy`
 
 This is what makes the cloud-hosted version of OpenCode possible — the same codebase can run as a local CLI tool or as a multi-tenant workspace server.
-
----
-
-## Questions for Expansion
-
-- [x] Walk through a specific API call end-to-end
-- [x] Explain the WebSocket upgrade path
-- [x] Detail the workspace routing middleware

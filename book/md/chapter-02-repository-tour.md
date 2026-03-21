@@ -131,11 +131,3 @@ Beyond `src/`, the `packages/opencode/` directory contains several important aux
 | Build config | `bunfig.toml`, `tsconfig.json` |
 | Core package | `packages/opencode/package.json` |
 | Source root | `packages/opencode/src/` |
-
----
-
-## Questions for Expansion
-
-- [ ] Include a visual directory tree diagram
-- [x] Explain the `catalog:` syntax in workspace package.json
-- [x] Cover auxiliary directories: `migration/`, `test/`, `script/`, `specs/`
