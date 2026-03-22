@@ -210,7 +210,7 @@ The result is a `Record<string, AITool>` where each key is a tool name and each 
 The data flow between the loop and processor on each iteration:
 
 ```
-+--- LOOP ITERATION --------------------------------+
++--- LOOP ITERATION ---------------------------------+
 |                                                    |
 |  1. Load messages (filterCompacted)                |
 |  2. Resolve agent, model, tools                    |
