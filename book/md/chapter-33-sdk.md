@@ -8,6 +8,14 @@
 
 The JavaScript SDK (`packages/sdk/js/`) provides a typed client library for programmatic interaction with the OpenCode server. It's used by external tools, editor extensions, and custom integrations to create sessions, send prompts, and subscribe to events.
 
+### Installation
+
+```bash
+npm install @opencode-ai/sdk
+```
+
+The SDK has no dependencies beyond the generated types -- it's a thin HTTP client that communicates with the OpenCode server's REST and SSE endpoints.
+
 ---
 
 ## 33.2 Client Creation
@@ -19,6 +27,38 @@ const client = createClient({ url: "http://localhost:3000" })
 ```
 
 The client function returns an object with typed methods for every API endpoint. These types are generated from OpenCode's Zod schemas, ensuring the SDK stays in sync with the server.
+
+### Complete Working Example
+
+```typescript
+import { createClient } from "@opencode-ai/sdk"
+
+async function main() {
+  const client = createClient({ url: "http://localhost:3000" })
+
+  // Create a session
+  const session = await client.session.create({})
+  console.log(`Session: ${session.id}`)
+
+  // Subscribe to streaming events
+  const unsub = client.event.subscribe((event) => {
+    if (event.type === "message.part.delta") {
+      process.stdout.write(event.data.delta)
+    }
+  })
+
+  // Send a prompt
+  await client.session.prompt({
+    sessionID: session.id,
+    parts: [{ type: "text", text: "List the files in this project" }],
+  })
+
+  // Wait for completion, then clean up
+  setTimeout(() => { unsub(); process.exit(0) }, 30000)
+}
+
+main()
+```
 
 ---
 

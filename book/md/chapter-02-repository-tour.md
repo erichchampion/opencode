@@ -23,8 +23,28 @@ Before diving into execution flow, we need a map. This chapter walks through the
 
 The project uses Bun workspaces (`bun.lock`, `bunfig.toml`, workspace definitions in `package.json`).
 
+Top-level directory layout:
+
+```
+opencode/
+  packages/
+    opencode/         # Core agent engine (~64,500 lines of TypeScript)
+    app/              # Web app frontend (SolidJS)
+    sdk/js/           # TypeScript SDK for programmatic access
+    plugin/           # Plugin API definitions
+    desktop/          # Tauri-based desktop app
+    console/          # Management console
+    ui/               # Shared UI component library
+    web/              # Marketing/landing page
+    util/             # Shared utilities (error types, slugs)
+  book/               # This book's source markdown
+  .github/            # CI workflows
+  bunfig.toml         # Bun configuration
+  package.json        # Workspace root with dev scripts
+```
+
 Key top-level packages:
-- `packages/opencode` — the core agent engine (CLI, server, session, tools, providers)
+- `packages/opencode` -- the core agent engine (CLI, server, session, tools, providers). This is where nearly all of the code lives: 339 TypeScript files across 39 subdirectories.
 - `packages/app` — web app frontend (SolidJS)
 - `packages/sdk/js` — TypeScript SDK for programmatic access
 - `packages/plugin` — plugin API definitions
@@ -34,7 +54,37 @@ Key top-level packages:
 - `packages/web` — marketing/landing page
 - `packages/util` — shared utilities (error types, slugs)
 
-### 2.2 The Core Source Tree (`packages/opencode/src/`)
+### 2.2 Test and Script Directories
+
+Tests mirror the source tree under `packages/opencode/test/`:
+
+```
+packages/opencode/test/
+  session/            # Session lifecycle, compaction, prompt, messages
+  tool/               # Tool execution, truncation, registry
+  provider/           # Provider loading, model resolution
+  config/             # Config loading, merging, validation
+  cli/                # CLI commands, TUI components
+  server/             # API endpoints, SSE events
+  plugin/             # Plugin hooks, auth overrides
+  auth/               # Credential storage, OAuth flows
+  permission/         # Rule evaluation, wildcard matching
+  file/               # File operations, gitignore handling
+  fixture.ts          # Shared test fixture (creates Instance context)
+```
+
+Tests are run from the package directory, never the repo root:
+
+```bash
+cd packages/opencode
+bun test                       # run all tests
+bun test test/session/          # run a specific directory
+bun test --test-name-pattern "compaction"  # run by name
+```
+
+Build and code generation scripts live in `packages/opencode/script/`.
+
+### 2.3 The Core Source Tree (`packages/opencode/src/`)
 
 39 subdirectories organized by domain concern:
 
@@ -62,7 +112,7 @@ Key top-level packages:
 | `format/` | Code formatting integration |
 | `auth/` | Authentication credential management |
 
-### 2.3 File Naming Patterns
+### 2.4 File Naming Patterns
 
 - `*.ts` — implementation modules
 - `*.txt` — prompt templates (embedded via `import PROMPT from "./file.txt"`)
@@ -70,14 +120,14 @@ Key top-level packages:
 - `schema.ts` — Zod schema/type definitions
 - `index.ts` — namespace barrel exports
 
-### 2.4 Key Entry Files
+### 2.5 Key Entry Files
 
 - `src/index.ts` — CLI entry point (yargs setup)
 - `src/cli/bootstrap.ts` — project instance initialization
 - `src/server/server.ts` — HTTP server creation
 - `src/session/prompt.ts` — main agent orchestration loop
 
-### 2.5 The `catalog:` Workspace Dependency Syntax
+### 2.6 The `catalog:` Workspace Dependency Syntax
 
 Throughout the repo's `package.json` files, you'll see dependencies declared as:
 
@@ -108,7 +158,7 @@ When a child package declares `"hono": "catalog:"`, Bun resolves it to the versi
 
 **Why this matters for understanding the codebase:** When you see `catalog:` in `packages/opencode/package.json`, don't go looking for the version there — it's in the root `package.json`'s `catalog` section.
 
-### 2.6 Auxiliary Directories
+### 2.7 Auxiliary Directories
 
 Beyond `src/`, the `packages/opencode/` directory contains several important auxiliary directories:
 

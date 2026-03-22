@@ -23,13 +23,38 @@ OpenCode's technology choices reflect its design principles: performance (Bun), 
 
 ### 3.1 Runtime: Bun
 
+- **Minimum version**: Bun >= 1.3.10 (specified in `package.json` as `"packageManager": "bun@1.3.10"`)
 - Bun is used as both runtime and package manager (`bun.lock`, `bunfig.toml`)
 - Enables `Bun.serve()` for HTTP, `Bun.file()` for filesystem, `Bun.stdin` for input
 - `Bun.spawn` used for child process management
 - TypeScript executed directly — no compile step needed
 - Dev command: `bun run --cwd packages/opencode src/index.ts`
 
+**Workspace dependency resolution** -- the monorepo uses Bun's `catalog:` protocol to share dependency versions across packages. Instead of duplicating version strings, each package references the catalog:
+
+```json
+// packages/opencode/package.json
+{
+  "dependencies": {
+    "ai": "catalog:",
+    "zod": "catalog:"
+  }
+}
+
+// root package.json defines the actual versions:
+{
+  "catalog": {
+    "ai": "^5.0.0",
+    "zod": "^3.23.0"
+  }
+}
+```
+
+This ensures all packages use the same version of shared dependencies.
+
 ### 3.2 Vercel AI SDK (`ai` package, v5)
+
+**Version note**: OpenCode uses AI SDK v5 (the `ai` package). This is a major version with breaking changes from v4 -- notably, the `tool()` helper, structured output via `experimental_output`, and the `wrapLanguageModel()` middleware API are all v5 features.
 
 This is the most consequential dependency. It provides:
 - `streamText()` — the core function that streams LLM responses with tool call support

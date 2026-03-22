@@ -6,7 +6,9 @@
 
 ## Introduction
 
-OpenCode is a terminal-first AI coding agent that gives large language models the ability to read, write, search, and execute code on your behalf. Unlike IDE-embedded copilots that suggest inline completions, OpenCode operates as a full agentic loop: it receives a natural-language prompt, plans its approach, executes multi-step tool calls, and iterates until the task is done — or it asks you a question.
+OpenCode (https://github.com/anomalyco/opencode) is a terminal-first AI coding agent that gives large language models the ability to read, write, search, and execute code on your behalf. Unlike IDE-embedded copilots that suggest inline completions, OpenCode operates as a full agentic loop: it receives a natural-language prompt, plans its approach, executes multi-step tool calls, and iterates until the task is done — or it asks you a question.
+
+The project is MIT-licensed and hosted at https://github.com/anomalyco/opencode.
 
 ### What You'll Learn
 
@@ -39,7 +41,39 @@ OpenCode is a terminal-first AI coding agent that gives large language models th
 - **Client-server**: the agent engine runs as an HTTP server (Hono), any client (TUI, web, mobile) can drive it via the OpenCode SDK
 - **LSP-aware**: out-of-the-box Language Server Protocol support for diagnostics
 
-### 1.3 Architecture at 10,000 Feet
+### 1.3 Getting Started
+
+**As a user** -- install and run with a single command:
+
+```bash
+npx opencode@latest
+```
+
+This downloads the latest release, detects your project directory, and launches the TUI. You'll need an API key for at least one provider (e.g., `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in your environment).
+
+**As a developer** -- clone and run from source:
+
+```bash
+git clone https://github.com/anomalyco/opencode.git
+cd opencode
+bun install              # requires Bun >= 1.3.10
+bun run dev              # launches the TUI against the current directory
+```
+
+The `bun run dev` command is shorthand for:
+
+```bash
+bun run --cwd packages/opencode --conditions=browser src/index.ts
+```
+
+On first launch, OpenCode:
+1. Detects the project directory (looks for `.git`, `package.json`, etc.)
+2. Creates a local SQLite database at `~/.opencode/data.db` for session storage
+3. Loads configuration from `opencode.json` (project-level) and `~/.config/opencode/config.json` (global)
+4. Starts the Hono HTTP server on a random available port
+5. Launches the TUI client connected to that server
+
+### 1.4 Architecture at 10,000 Feet
 
 ```
 +---------------------------------------------------------+
@@ -61,7 +95,7 @@ OpenCode is a terminal-first AI coding agent that gives large language models th
 +---------------------------------------------------------+
 ```
 
-### 1.4 How OpenCode Differs from Claude Code
+### 1.5 How OpenCode Differs from Claude Code
 
 Directly from the README:
 - 100% open source
@@ -70,7 +104,7 @@ Directly from the README:
 - TUI focus (Ink-based terminal rendering)
 - Client-server architecture enabling remote operation
 
-### 1.5 The User Experience vs. What Happens Inside
+### 1.6 The User Experience vs. What Happens Inside
 
 To understand why the codebase is structured the way it is, it helps to contrast what the *user* experiences with what the *engine* does behind the scenes.
 

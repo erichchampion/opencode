@@ -31,16 +31,66 @@ This provides:
 
 ---
 
-## 26.3 Publishing and Subscribing
+## 26.3 How Bus.publish() Works
+
+From `bus/index.ts`, the `publish()` function delivers events to two destinations:
 
 ```typescript
-Bus.publish(Session.Event.Created, { info: session })
+export async function publish<Definition extends BusEvent.Definition>(
+  def: Definition,
+  properties: z.output<Definition["properties"]>,
+) {
+  const payload = { type: def.type, properties }
+  // 1. Deliver to instance-scoped subscribers (matching type + wildcard "*")
+  for (const key of [def.type, "*"]) {
+    const match = [...(state().subscriptions.get(key) ?? [])]
+    for (const sub of match) {
+      pending.push(sub(payload))
+    }
+  }
+  // 2. Forward to GlobalBus for cross-instance delivery (SSE, other instances)
+  GlobalBus.emit("event", { directory: Instance.directory, payload })
+  return Promise.all(pending)
+}
+```
 
-Bus.subscribe(Session.Event.Created, (payload) => {
-  // payload: { info: Session.Info } -- fully typed
-  console.log(`New session: ${payload.info.title}`)
+The key insight: events are delivered to **both** local subscribers (via `Instance.state()`) and the global bus. This is what enables the SSE streaming -- the server's event route subscribes to the `GlobalBus`, not individual instance buses.
+
+---
+
+## 26.4 Instance Bus vs. Global Bus
+
+OpenCode has two bus layers:
+
+| Layer | Scope | Used By |
+|-------|-------|---------|
+| **Instance Bus** (`Bus`) | Scoped to one project directory via `Instance.state()` | TUI components, tool callbacks, session processor |
+| **Global Bus** (`GlobalBus`) | Process-wide, spans all instances | SSE endpoint, inter-workspace events, shutdown |
+
+When an instance is disposed, the instance bus publishes `InstanceDisposed` to its wildcard subscribers, allowing cleanup of long-lived listeners.
+
+---
+
+## 26.5 Subscribing and Unsubscribing
+
+```typescript
+// Type-safe subscription -- callback receives { type, properties } with full typing
+const unsub = Bus.subscribe(Session.Event.Created, (event) => {
+  console.log(`New session: ${event.properties.info.title}`)
+})
+
+// One-shot subscription -- automatically unsubscribes when callback returns "done"
+Bus.once(Permission.Event.Replied, (event) => {
+  if (event.properties.requestID === myRequest) return "done"
+})
+
+// Wildcard subscription -- receives ALL events (used by SSE endpoint)
+const unsub = Bus.subscribeAll((event) => {
+  stream.write(`data: ${JSON.stringify(event)}\n\n`)
 })
 ```
+
+The `subscribe()` function returns an unsubscribe function. Calling it removes the callback from the subscription list, preventing memory leaks.
 
 ### Database.effect()
 
@@ -57,29 +107,54 @@ This defers the publish until the transaction commits, preventing subscribers fr
 
 ---
 
-## 26.4 Key Event Categories
+## 26.6 Complete Event Catalog
 
-| Namespace | Events | Purpose |
-|-----------|--------|---------|
-| `Session.Event` | Created, Updated, Deleted, Diff, Error | Session lifecycle |
-| `MessageV2.Event` | message.updated, part.updated, part.delta, part.removed | Message mutations |
-| `Permission.Event` | Asked, Replied | Permission flow |
-| `MCP.ToolsChanged` | mcp.tools.changed | MCP server tool list updates |
-| `TuiEvent` | ToastShow | TUI notifications |
+All events defined across the codebase:
+
+| Namespace | Event | Trigger |
+|-----------|-------|---------|
+| `Session.Event` | `session.created`, `.updated`, `.deleted` | Session lifecycle changes |
+| `Session.Event` | `session.diff` | File changes detected in a session |
+| `Session.Event` | `session.error` | Unhandled session error |
+| `MessageV2.Event` | `message.updated` | Message metadata changed |
+| `MessageV2.Event` | `part.updated`, `part.delta`, `part.removed` | Message part mutations (text, tools) |
+| `Permission.Event` | `permission.asked`, `permission.replied` | Permission request flow |
+| `Question.Event` | `question.asked`, `.replied`, `.rejected` | User question flow |
+| `SessionCompaction.Event` | `session.compacted` | Compaction completed |
+| `MCP` | `mcp.tools.changed`, `mcp.browser.open.failed` | MCP server events |
+| `LSP` | `lsp.updated`, `lsp.diagnostics` | Language server changes |
+| `File.Event` | `file.edited` | File modification via tools |
+| `FileWatcher` | `file.watcher.updated` | Filesystem change detected |
+| `Pty` | `pty.created`, `.updated`, `.exited`, `.deleted` | Terminal process lifecycle |
+| `Installation` | `installation.updated`, `.update.available` | Version check events |
+| `TuiEvent` | `tui.toast.show`, `tui.prompt.append`, `tui.session.select` | TUI-specific events |
+| `Command.Event` | `command.executed` | Slash command executed |
+| `Project.Event` | `project.updated` | Project metadata changed |
+| `VCS.Event` | `vcs.branch.updated` | Git branch change |
+| `Bus` | `server.instance.disposed` | Instance shutdown |
 
 ---
 
-## 26.5 Events and SSE
+## 26.7 Event Flow: Tool Execution to UI
 
-The server's SSE endpoint (`/events`) subscribes to bus events and forwards them to clients:
+A complete event flow showing how a tool execution reaches the TUI:
 
 ```
-Bus.publish(Event.Updated) --> SSE subscriber --> JSON event --> Client
+Tool completes (e.g., EditTool writes a file)
+    |
+    v
+Session.updatePart(tool.part)    -- updates SQLite
+    |
+    v
+Bus.publish(MessageV2.Event.PartUpdated)
+    |
+    +-- Instance subscribers: TUI Thread component re-renders
+    |
+    +-- GlobalBus.emit("event")
+            |
+            v
+        SSE endpoint streams JSON to SDK clients
 ```
-
-This is how the TUI and SDK receive real-time updates. Each SSE event carries:
-- `type` -- the event name (e.g., `"session.updated"`)
-- `data` -- JSON-encoded payload
 
 Cross-reference: Chapter 7 covers the HTTP server and SSE endpoint.
 
@@ -91,3 +166,15 @@ Cross-reference: Chapter 7 covers the HTTP server and SSE endpoint.
 |---------|------|
 | Bus core | `bus/index.ts` |
 | Event definition | `bus/bus-event.ts` |
+| Global bus | `bus/global.ts` |
+| SSE event route | `server/routes/event.ts` |
+
+---
+
+## Test References
+
+| Test File | Lines | What It Demonstrates |
+|-----------|-------|---------------------|
+| `test/session/compaction.test.ts` | 423 | Events published during compaction |
+| `test/server/event.test.ts` | varies | SSE event streaming via GlobalBus |
+

@@ -68,6 +68,37 @@ Rich model metadata:
 
 `Provider.getLanguage(model)` converts a `Model` to a Vercel AI SDK `LanguageModel` ready for `streamText()`.
 
+### 8.5 Supported Providers
+
+OpenCode bundles 22 provider SDK adapters. Each is imported directly in `provider/provider.ts`:
+
+| Provider | SDK Package | Auth Type |
+|----------|-------------|-----------|
+| Anthropic | `@ai-sdk/anthropic` | API key (`ANTHROPIC_API_KEY`) |
+| OpenAI | `@ai-sdk/openai` | API key (`OPENAI_API_KEY`) or OAuth |
+| Google Gemini | `@ai-sdk/google` | API key (`GOOGLE_GENERATIVE_AI_API_KEY`) |
+| Google Vertex AI | `@ai-sdk/google-vertex` | Application Default Credentials |
+| Vertex Anthropic | `@ai-sdk/google-vertex/anthropic` | ADC (run Claude via Vertex) |
+| AWS Bedrock | `@ai-sdk/amazon-bedrock` | Credential chain (`fromNodeProviderChain`) |
+| Azure OpenAI | `@ai-sdk/azure` | API key or Entra ID |
+| OpenRouter | `@openrouter/ai-sdk-provider` | API key |
+| GitHub Copilot | Custom (`provider/sdk/copilot`) | OAuth (GitHub token) |
+| xAI (Grok) | `@ai-sdk/xai` | API key |
+| Mistral | `@ai-sdk/mistral` | API key |
+| Groq | `@ai-sdk/groq` | API key |
+| DeepInfra | `@ai-sdk/deepinfra` | API key |
+| Cerebras | `@ai-sdk/cerebras` | API key |
+| Cohere | `@ai-sdk/cohere` | API key |
+| Together AI | `@ai-sdk/togetherai` | API key |
+| Perplexity | `@ai-sdk/perplexity` | API key |
+| Vercel AI Gateway | `@ai-sdk/gateway` | API key |
+| Vercel | `@ai-sdk/vercel` | API key |
+| GitLab Duo | `gitlab-ai-provider` | Private token or OAuth |
+| OpenAI-Compatible | `@ai-sdk/openai-compatible` | API key + custom base URL |
+| Any LiteLLM proxy | `@ai-sdk/openai-compatible` | Proxy auth |
+
+The `openai-compatible` adapter is the catch-all -- any provider that exposes an OpenAI-compatible API can be used by setting a custom `base_url` in the provider config.
+
 ---
 
 ## Source File Map
