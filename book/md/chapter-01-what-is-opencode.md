@@ -58,7 +58,7 @@ This downloads the latest release, detects your project directory, and launches 
 ```bash
 git clone https://github.com/anomalyco/opencode.git
 cd opencode
-git checkout 129fe1e35    # the commit this book was written against
+git checkout 129fe1e35   # the commit this book was written against
 bun install              # requires Bun >= 1.3.10
 bun run dev              # launches the TUI against the current directory
 ```
