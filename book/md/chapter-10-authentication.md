@@ -6,7 +6,7 @@
 
 ## Introduction
 
-Each provider needs credentials — API keys, OAuth tokens, AWS credential chains, or service accounts. This chapter explains how OpenCode manages authentication across 20+ providers.
+Each provider needs credentials -- API keys, OAuth tokens, AWS credential chains, or service accounts. This chapter explains how OpenCode manages authentication across 20+ providers.
 
 ### What You'll Learn
 
@@ -22,8 +22,8 @@ Each provider needs credentials — API keys, OAuth tokens, AWS credential chain
 ### 10.1 Auth Storage
 
 `Auth.get(providerID)` returns stored credentials. Types:
-- `api` — API key string
-- `oauth` — OAuth access/refresh tokens
+- `api` -- API key string
+- `oauth` -- OAuth access/refresh tokens
 
 ### 10.2 Credential Sources (Priority Order)
 

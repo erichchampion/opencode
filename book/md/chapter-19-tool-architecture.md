@@ -209,7 +209,7 @@ Not all tools are available in every session. The registry filters tools based o
 | Feature flag | `batch` | Config `experimental.batch_tool: true` |
 | Feature flag | `plan_exit` | `OPENCODE_EXPERIMENTAL_PLAN_MODE` + CLI client |
 | Client type | `question` | Only for `app`, `cli`, `desktop` clients |
-| Agent | varies | Agent permissions deny/allow specific tools per agent |
+| Agent | (per agent) | Agent permissions deny/allow specific tools per agent |
 
 ### Custom Tools
 

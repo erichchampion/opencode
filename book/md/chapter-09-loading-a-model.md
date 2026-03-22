@@ -1,4 +1,4 @@
-# Chapter 9: Loading a Model — From Config String to Language Model
+# Chapter 9: Loading a Model -- From Config String to Language Model
 
 > *"A model ID is just a string until you give it a voice."*
 
@@ -10,11 +10,11 @@ When the user specifies `--model anthropic/claude-sonnet-4-20250514` or the conf
 
 ### What You'll Learn
 
-- `Provider.parseModel()` — splitting `providerID/modelID`
-- `Provider.getModel()` — resolving metadata from models.dev
-- `Provider.getLanguage()` — creating the AI SDK language model
-- `Provider.defaultModel()` — fallback resolution
-- The `ProviderTransform` layer — adapting options per-provider
+- `Provider.parseModel()` -- splitting `providerID/modelID`
+- `Provider.getModel()` -- resolving metadata from models.dev
+- `Provider.getLanguage()` -- creating the AI SDK language model
+- `Provider.defaultModel()` -- fallback resolution
+- The `ProviderTransform` layer -- adapting options per-provider
 
 ---
 
@@ -41,11 +41,11 @@ Models are specified as `providerID/modelID`:
 ### 9.3 ProviderTransform
 
 `provider/transform.ts` (~33K) handles per-provider message and options transformation:
-- `ProviderTransform.options()` — builds provider-specific options (max tokens, caching, etc.)
-- `ProviderTransform.message()` — transforms message format for specific providers
-- `ProviderTransform.providerOptions()` — provider-specific options (Anthropic cache control, etc.)
-- `ProviderTransform.maxOutputTokens()` — output token limits
-- `ProviderTransform.temperature()` — provider-specific temperature defaults
+- `ProviderTransform.options()` -- builds provider-specific options (max tokens, caching, etc.)
+- `ProviderTransform.message()` -- transforms message format for specific providers
+- `ProviderTransform.providerOptions()` -- provider-specific options (Anthropic cache control, etc.)
+- `ProviderTransform.maxOutputTokens()` -- output token limits
+- `ProviderTransform.temperature()` -- provider-specific temperature defaults
 
 ---
 
@@ -66,7 +66,7 @@ Model resolution is tested extensively in the provider suite:
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
 | `test/provider/provider.test.ts` | 2,284 | `Provider.parseModel()`, `Provider.getModel()`, fuzzy model matching via fuzzysort, model config overrides, default model resolution, capability and cost metadata lookup |
-| `test/provider/transform.test.ts` | 2,655 | `ProviderTransform.maxOutputTokens()`, `ProviderTransform.temperature()` — how model options vary per-provider |
+| `test/provider/transform.test.ts` | 2,655 | `ProviderTransform.maxOutputTokens()`, `ProviderTransform.temperature()` -- how model options vary per-provider |
 
 ---
 
@@ -126,7 +126,7 @@ fuzzysort.go("sonnet", allModels, { key: "id", threshold: -10000 })
 Best match: "claude-sonnet-4-20250514"
 ```
 
-This is used in the TUI's model picker and in config parsing — if you write `"model": "sonnet"` in your config, it resolves to the best-matching model for any configured provider.
+This is used in the TUI's model picker and in config parsing -- if you write `"model": "sonnet"` in your config, it resolves to the best-matching model for any configured provider.
 
 ### 9.6 Model Overrides in Config
 
@@ -153,4 +153,4 @@ The config system allows per-model overrides that layer on top of the models.dev
 }
 ```
 
-The override merge happens during `Provider.getModel()` — models.dev provides the base metadata, and config overrides layer on top. This is tested in `test/provider/provider.test.ts` with cases like "config max_tokens overrides default".
+The override merge happens during `Provider.getModel()` -- models.dev provides the base metadata, and config overrides layer on top. This is tested in `test/provider/provider.test.ts` with cases like "config max_tokens overrides default".

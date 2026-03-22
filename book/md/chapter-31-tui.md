@@ -181,5 +181,5 @@ Each agent gets a distinct color for visual identification. Theme options are te
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
 | `test/cli/tui/thread.test.ts` | 157 | Thread rendering with various part types |
-| `test/cli/tui/input.test.ts` | varies | Input handling, key bindings, command parsing |
+| `test/cli/cmd/tui/prompt-part.test.ts` | 47 | Input handling, prompt parts, command parsing |
 | `test/config/tui.test.ts` | 510 | TUI-specific key bindings, theme configuration |

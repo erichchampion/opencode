@@ -81,7 +81,7 @@ Line and character are 1-based (as shown in editors). The tool converts to 0-bas
 
 ### Availability
 
-The LSP tool is gated behind the `OPENCODE_EXPERIMENTAL_LSP_TOOL` feature flag. It requires a running language server for the target file type — if no server is available, it throws a descriptive error rather than returning empty results.
+The LSP tool is gated behind the `OPENCODE_EXPERIMENTAL_LSP_TOOL` feature flag. It requires a running language server for the target file type -- if no server is available, it throws a descriptive error rather than returning empty results.
 
 ---
 
@@ -94,11 +94,11 @@ codesearch({ query: "React useState hook examples", tokensNum: 5000 })
 ```
 
 Key behaviors:
-- **External API** — sends a JSON-RPC request to `https://mcp.exa.ai/mcp` using the MCP protocol
-- **Token control** — `tokensNum` parameter (1,000-50,000) controls how much context to return
-- **Permission required** — requires user approval; "always allow" auto-approves all queries
-- **SSE response parsing** — the API returns Server-Sent Events which are parsed to extract the content
-- **30-second timeout** — requests abort after 30 seconds
+- **External API** -- sends a JSON-RPC request to `https://mcp.exa.ai/mcp` using the MCP protocol
+- **Token control** -- `tokensNum` parameter (1,000-50,000) controls how much context to return
+- **Permission required** -- requires user approval; "always allow" auto-approves all queries
+- **SSE response parsing** -- the API returns Server-Sent Events which are parsed to extract the content
+- **30-second timeout** -- requests abort after 30 seconds
 
 ### Availability
 
@@ -123,5 +123,5 @@ Only available when using the OpenCode provider or when the `OPENCODE_ENABLE_EXA
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/tool/grep.test.ts` | varies | Pattern matching, include/exclude, output formatting |
+| `test/tool/grep.test.ts` | 111 | Pattern matching, include/exclude, output formatting |
 | `test/file/index.test.ts` | 852 | File operations including gitignore handling |

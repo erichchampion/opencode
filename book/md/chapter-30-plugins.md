@@ -129,4 +129,6 @@ Plugins loaded from URLs (`https://example.com/plugin.js`) are fetched over HTTP
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/plugin/plugin.test.ts` | varies | Plugin loading, hook registration, trigger chain, custom tools |
+| `test/plugin/codex.test.ts` | 123 | Plugin loading, hook registration, trigger chain |
+| `test/plugin/auth-override.test.ts` | 45 | Plugins overriding authentication credentials |
+

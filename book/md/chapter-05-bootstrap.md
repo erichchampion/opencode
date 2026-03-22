@@ -1,4 +1,4 @@
-# Chapter 5: Bootstrap — Project Discovery, Database, and Instance Lifecycle
+# Chapter 5: Bootstrap -- Project Discovery, Database, and Instance Lifecycle
 
 > *"Before the agent can act, it must know where it is."*
 
@@ -39,17 +39,17 @@ export async function bootstrap<T>(directory: string, cb: () => Promise<T>) {
 }
 ```
 
-This establishes a scoped execution context. `Instance.provide()` is the foundation — it creates a project-scoped context that all downstream code can access.
+This establishes a scoped execution context. `Instance.provide()` is the foundation -- it creates a project-scoped context that all downstream code can access.
 
 ### 5.2 Instance Architecture (`project/instance.ts`)
 
 The `Instance` namespace provides:
-- `Instance.directory` — current working directory
-- `Instance.worktree` — git worktree root (or directory if no git)
-- `Instance.project` — project metadata (ID, VCS type)
-- `Instance.state()` — factory for creating lazy, instance-scoped state objects
-- `Instance.provide()` — establishes a new instance context (AsyncLocalStorage-like)
-- `Instance.dispose()` — cleanup, runs all state destructors
+- `Instance.directory` -- current working directory
+- `Instance.worktree` -- git worktree root (or directory if no git)
+- `Instance.project` -- project metadata (ID, VCS type)
+- `Instance.state()` -- factory for creating lazy, instance-scoped state objects
+- `Instance.provide()` -- establishes a new instance context (AsyncLocalStorage-like)
+- `Instance.dispose()` -- cleanup, runs all state destructors
 
 ### 5.3 `InstanceBootstrap` Sequence
 
@@ -61,7 +61,7 @@ Located in `project/bootstrap.ts`, this runs during `Instance.provide()`:
 5. Initialize MCP servers if configured
 6. Start file watchers
 
-### 5.4 Instance.state() — Lazy Scoped State
+### 5.4 Instance.state() -- Lazy Scoped State
 
 A key pattern throughout the codebase:
 
@@ -71,7 +71,7 @@ const state = Instance.state(async () => {
   return computeState()
 })
 
-// Usage — returns the cached value
+// Usage -- returns the cached value
 const data = await state()
 ```
 
@@ -83,7 +83,7 @@ Used by: `Agent`, `ToolRegistry`, `Config`, `Skill`, and more. Each creates scop
 - Database file: `Global.Path.data + "/opencode.db"`
 - Tables created via Drizzle migrations
 - `Database.use()` provides transactional database access
-- `Database.effect()` — deferred side effects that run after transaction commit
+- `Database.effect()` -- deferred side effects that run after transaction commit
 
 ---
 
@@ -106,9 +106,9 @@ The test fixture system itself demonstrates the `Instance.provide()` pattern:
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/fixture/fixture.ts` | 74 | The `tmpdir()` helper — creates temp directories, initializes git, writes config, uses `Symbol.asyncDispose` for cleanup. A microcosm of the bootstrap pattern. |
+| `test/fixture/fixture.ts` | 74 | The `tmpdir()` helper -- creates temp directories, initializes git, writes config, uses `Symbol.asyncDispose` for cleanup. A microcosm of the bootstrap pattern. |
 | `test/project/project.test.ts` | 395 | Project discovery, VCS detection, worktree resolution. Tests how `Instance.provide()` resolves project context from a directory path. |
-| `test/project/state.test.ts` | 115 | `Instance.state()` — lazy initialization, caching, and disposal of scoped state objects. |
+| `test/project/state.test.ts` | 115 | `Instance.state()` -- lazy initialization, caching, and disposal of scoped state objects. |
 | `test/project/vcs.test.ts` | 123 | VCS detection (git vs. none), branch resolution, worktree root finding. |
 | `test/project/worktree-remove.test.ts` | 96 | Worktree cleanup and removal edge cases. |
 | `test/project/migrate-global.test.ts` | 140 | Migration of global project data between versions. |
@@ -135,7 +135,7 @@ This mirrors the production `bootstrap()` --> `Instance.provide()` --> `Instance
 ```
 Instance.provide({ directory, init, fn })
     |
-    +-- 1. Filesystem.resolve(directory) — normalize path
+    +-- 1. Filesystem.resolve(directory) -- normalize path
     |
     +-- 2. Check cache (Map<string, Promise<Context>>)
     |       |
@@ -156,13 +156,13 @@ Instance.provide({ directory, init, fn })
     |                   |
     |                   +-- Return { directory, worktree, project }
     |
-    +-- 3. context.provide(ctx, fn) — run user callback inside ALS
+    +-- 3. context.provide(ctx, fn) -- run user callback inside ALS
     |       +-- fn() has access to Instance.directory, .worktree, .project, .state()
     |
     +-- (on exit or explicit call)
         Instance.dispose()
-            +-- State.dispose(directory) — runs all state destructors
-            +-- disposeInstance(directory) — cleanup Effect runtime
+            +-- State.dispose(directory) -- runs all state destructors
+            +-- disposeInstance(directory) -- cleanup Effect runtime
             +-- cache.delete(directory)
             +-- GlobalBus.emit("server.instance.disposed")
 ```
@@ -174,7 +174,7 @@ Instance.provide({ directory, init, fn })
 The database uses five primary tables, all defined with Drizzle ORM's `sqliteTable()`:
 
 ```typescript
-// session/session.sql.ts — abbreviated
+// session/session.sql.ts -- abbreviated
 
 export const SessionTable = sqliteTable("session", {
   id: text().$type<SessionID>().primaryKey(),
@@ -209,22 +209,36 @@ export const PartTable = sqliteTable("part", {
   ...Timestamps,
 })
 
-export const TodoTable = sqliteTable("todo", { ... })       // task tracking per session
-export const PermissionTable = sqliteTable("permission", { ... })  // persisted "always" grants
+export const TodoTable = sqliteTable("todo", {
+  session_id: text().$type<SessionID>()
+    .references(() => SessionTable.id, { onDelete: "cascade" }),
+  content: text().notNull(),
+  status: text().notNull(),       // "pending", "in_progress", "done"
+  priority: text().notNull(),
+  position: integer().notNull(),
+  ...Timestamps,
+})  // composite primary key: (session_id, position)
+
+export const PermissionTable = sqliteTable("permission", {
+  project_id: text().primaryKey()
+    .references(() => ProjectTable.id, { onDelete: "cascade" }),
+  data: text({ mode: "json" }).notNull().$type<PermissionNext.Ruleset>(),
+  ...Timestamps,
+})
 ```
 
 **Design patterns to note:**
-- **JSON columns**: `data` fields store structured JSON (message info, parts, diffs) — keeps the schema flexible while retaining SQLite performance
+- **JSON columns**: `data` fields store structured JSON (message info, parts, diffs) -- keeps the schema flexible while retaining SQLite performance
 - **Cascade deletes**: all child tables cascade from their parent. Deleting a session removes all messages, parts, and todos automatically
-- **Branded types**: `SessionID`, `MessageID`, `PartID` are branded string types (via `$type<>`) — prevents accidentally passing a session ID where a message ID is expected
-- **ULID primary keys**: IDs are ULIDs (Universally Unique Lexicographically Sortable Identifiers) — time-sortable and unique without coordination
+- **Branded types**: `SessionID`, `MessageID`, `PartID` are branded string types (via `$type<>`) -- prevents accidentally passing a session ID where a message ID is expected
+- **ULID primary keys**: IDs are ULIDs (Universally Unique Lexicographically Sortable Identifiers) -- time-sortable and unique without coordination
 
 ### 5.8 AsyncLocalStorage Mechanics Behind Instance
 
 The `Context` utility that powers `Instance` is a thin wrapper around Node.js `AsyncLocalStorage`:
 
 ```typescript
-// util/context.ts — complete implementation (26 lines)
+// util/context.ts -- complete implementation (26 lines)
 import { AsyncLocalStorage } from "async_hooks"
 
 export namespace Context {
@@ -252,10 +266,10 @@ export namespace Context {
 
 **How it works:**
 1. `AsyncLocalStorage.run(value, fn)` creates a new async context with `value`, then runs `fn` within it
-2. Any code called from within `fn` — even through `await`, `setTimeout`, or event callbacks — can access `value` via `getStore()`
+2. Any code called from within `fn` -- even through `await`, `setTimeout`, or event callbacks -- can access `value` via `getStore()`
 3. When `fn` exits, the context is automatically cleaned up
 
-**Why this matters for the codebase:** Instead of threading a `project` parameter through every function call, any function anywhere in the call tree can access `Instance.directory`, `Instance.worktree`, or `Instance.project` directly. This is what makes patterns like `Instance.state()` possible — the state factory knows which project it belongs to without being told explicitly.
+**Why this matters for the codebase:** Instead of threading a `project` parameter through every function call, any function anywhere in the call tree can access `Instance.directory`, `Instance.worktree`, or `Instance.project` directly. This is what makes patterns like `Instance.state()` possible -- the state factory knows which project it belongs to without being told explicitly.
 
 The `Instance.bind()` method handles edge cases where callbacks escape the async context (native addons, event emitters):
 

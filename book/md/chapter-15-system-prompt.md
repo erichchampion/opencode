@@ -181,6 +181,6 @@ This prevents the agent from starting new work when it's about to hit its step l
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/session/system-prompt.test.ts` | varies | System prompt assembly, provider selection, environment injection |
-| `test/session/instruction.test.ts` | varies | Instruction file discovery, loading priority, claim deduplication |
+| `test/session/system.test.ts` | 59 | System prompt assembly, provider selection, environment injection |
+| `test/session/instruction.test.ts` | 170 | Instruction file discovery, loading priority, claim deduplication |
 | `test/session/prompt.test.ts` | 212 | Full prompt assembly including system prompt sections |

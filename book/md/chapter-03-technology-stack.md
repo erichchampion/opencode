@@ -1,6 +1,6 @@
 # Chapter 3: Technology Stack and Key Dependencies
 
-> *"Choose your tools wisely — they shape the code you write."*
+> *"Choose your tools wisely -- they shape the code you write."*
 
 ---
 
@@ -27,7 +27,7 @@ OpenCode's technology choices reflect its design principles: performance (Bun), 
 - Bun is used as both runtime and package manager (`bun.lock`, `bunfig.toml`)
 - Enables `Bun.serve()` for HTTP, `Bun.file()` for filesystem, `Bun.stdin` for input
 - `Bun.spawn` used for child process management
-- TypeScript executed directly — no compile step needed
+- TypeScript executed directly -- no compile step needed
 - Dev command: `bun run --cwd packages/opencode src/index.ts`
 
 **Workspace dependency resolution** -- the monorepo uses Bun's `catalog:` protocol to share dependency versions across packages. Instead of duplicating version strings, each package references the catalog:
@@ -57,13 +57,13 @@ This ensures all packages use the same version of shared dependencies.
 **Version note**: OpenCode uses AI SDK v5 (the `ai` package). This is a major version with breaking changes from v4 -- notably, the `tool()` helper, structured output via `experimental_output`, and the `wrapLanguageModel()` middleware API are all v5 features.
 
 This is the most consequential dependency. It provides:
-- `streamText()` — the core function that streams LLM responses with tool call support
-- `tool()` / `jsonSchema()` — tool definition helpers
-- `wrapLanguageModel()` — middleware for transforming model params
+- `streamText()` -- the core function that streams LLM responses with tool call support
+- `tool()` / `jsonSchema()` -- tool definition helpers
+- `wrapLanguageModel()` -- middleware for transforming model params
 - Provider adapters: `@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google`, etc.
 - `ProviderMetadata` typing for provider-specific response data
 
-**File**: `session/llm.ts` — the `LLM.stream()` function wraps `streamText()` with:
+**File**: `session/llm.ts` -- the `LLM.stream()` function wraps `streamText()` with:
 - System prompt injection
 - Temperature/topP/topK configuration
 - Tool resolution and permission filtering
@@ -126,12 +126,12 @@ const model = wrapLanguageModel({
 })
 ```
 
-**Why this matters:** OpenCode supports 20+ providers, each with different parameter names, capabilities, and quirks. Rather than maintaining 20 separate code paths, `wrapLanguageModel` lets the codebase apply per-provider transformations as middleware — a clean separation between "what OpenCode wants to do" and "how each provider expects it."
+**Why this matters:** OpenCode supports 20+ providers, each with different parameter names, capabilities, and quirks. Rather than maintaining 20 separate code paths, `wrapLanguageModel` lets the codebase apply per-provider transformations as middleware -- a clean separation between "what OpenCode wants to do" and "how each provider expects it."
 
 The `ProviderTransform` module (`provider/transform.ts`) provides the transformation logic:
-- `ProviderTransform.options()` — adjusts model-level options (temperature, max tokens, stop sequences)
-- `ProviderTransform.message()` — transforms message content per-provider (e.g., image encoding, tool call format)
-- `ProviderTransform.providerOptions()` — injects provider-specific headers, API versions, or feature flags
+- `ProviderTransform.options()` -- adjusts model-level options (temperature, max tokens, stop sequences)
+- `ProviderTransform.message()` -- transforms message content per-provider (e.g., image encoding, tool call format)
+- `ProviderTransform.providerOptions()` -- injects provider-specific headers, API versions, or feature flags
 
 This pattern is tested extensively in `test/provider/transform.test.ts` (2,655 lines) which covers every supported provider.
 
@@ -147,7 +147,7 @@ OpenCode's HTTP layer uses [Hono](https://hono.dev), a relatively new framework.
 | Bundle size | ~200KB | ~350KB | **~14KB** |
 | Request validation | Express-validator | Ajv | **Zod integration** (@hono/zod-validator) |
 
-The key advantage for OpenCode: **Hono runs natively on Bun** without adapter shims. Since OpenCode uses `Bun.serve()` as its HTTP runtime, Hono integrates seamlessly. The `hono-openapi` package also generates the OpenAPI spec that drives SDK generation — one framework handles both the API server and the SDK contract.
+The key advantage for OpenCode: **Hono runs natively on Bun** without adapter shims. Since OpenCode uses `Bun.serve()` as its HTTP runtime, Hono integrates seamlessly. The `hono-openapi` package also generates the OpenAPI spec that drives SDK generation -- one framework handles both the API server and the SDK contract.
 
 ### 3.9 The `catalog:` Workspace Dependency Resolution
 
@@ -159,7 +159,7 @@ The `catalog:` syntax is specifically a Bun workspace feature. When Bun resolves
 2. It finds `"ai": "5.0.124"` there
 3. It resolves the dependency as if the child had written `"ai": "5.0.124"`
 
-This is different from `workspace:*` (which points to a local package) — `catalog:` is for external npm dependencies where you want version consistency. The root `package.json` acts as a single source of truth for version pins, making upgrades atomic: change one line in the catalog and every package picks up the new version.
+This is different from `workspace:*` (which points to a local package) -- `catalog:` is for external npm dependencies where you want version consistency. The root `package.json` acts as a single source of truth for version pins, making upgrades atomic: change one line in the catalog and every package picks up the new version.
 
 ---
 

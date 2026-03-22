@@ -218,6 +218,6 @@ The arity-based permission system (§22.4) mitigates this by letting users appro
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/tool/bash.test.ts` | varies | Command execution, timeout, abort, output capture |
-| `test/permission/arity.test.ts` | varies | Arity prefix extraction for bash commands |
+| `test/tool/bash.test.ts` | 403 | Command execution, timeout, abort, output capture |
+| `test/permission/arity.test.ts` | 33 | Arity prefix extraction for bash commands |
 | `test/tool/external-directory.test.ts` | 128 | External directory permission checks |

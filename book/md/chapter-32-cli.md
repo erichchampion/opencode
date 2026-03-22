@@ -172,6 +172,8 @@ opencode --session "$SESSION" "Add unit tests"
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/cli/run.test.ts` | varies | Non-interactive prompt execution |
-| `test/cli/config.test.ts` | varies | Config command output |
+| `test/cli/github-action.test.ts` | 198 | GitHub Action integration for non-interactive mode |
+| `test/cli/import.test.ts` | 54 | Session import/export roundtrip |
+| `test/cli/github-remote.test.ts` | 80 | GitHub remote detection and PR operations |
+
 

@@ -1,4 +1,4 @@
-# Chapter 11: Agents — Roles, Permissions, and Personalities
+# Chapter 11: Agents -- Roles, Permissions, and Personalities
 
 > *"An agent is a model with a job description and a set of rules."*
 
@@ -34,15 +34,15 @@ OpenCode ships with multiple built-in agents, each with distinct capabilities an
 ### 11.2 Agent.Info Schema
 
 Each agent is defined by:
-- `name` — identifier
-- `description` — human-readable explanation (also shown in system prompt)
-- `mode` — `"primary"` (user-facing) or `"subagent"` (invoked by other agents)
-- `permission` — ruleset controlling tool access
-- `prompt` — custom system prompt override
-- `model` — optional model override
-- `temperature`, `topP` — generation parameters
-- `steps` — max step limit
-- `color` — UI display color
+- `name` -- identifier
+- `description` -- human-readable explanation (also shown in system prompt)
+- `mode` -- `"primary"` (user-facing) or `"subagent"` (invoked by other agents)
+- `permission` -- ruleset controlling tool access
+- `prompt` -- custom system prompt override
+- `model` -- optional model override
+- `temperature`, `topP` -- generation parameters
+- `steps` -- max step limit
+- `color` -- UI display color
 
 ### 11.3 Permission Merging
 
@@ -84,14 +84,14 @@ Users can define custom agents in `opencode.json`:
 
 ## Test References
 
-The agent test is one of the most instructive tests in the codebase — it systematically demonstrates every concept in this chapter:
+The agent test is one of the most instructive tests in the codebase -- it systematically demonstrates every concept in this chapter:
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
 | `test/agent/agent.test.ts` | 716 | **All 7 built-in agents** (build, plan, general, explore, compaction, title, summary) with correct default properties. Custom agent creation from config. Permission merging (agent-level, global-level). Agent disabling. Mode overrides. Name/prompt/steps overrides. Default agent resolution (fallback to plan when build disabled, error when all disabled). Legacy `tools` config --> permission conversion. `Truncate.GLOB` edge cases for external directory permissions. |
 
 **Key test patterns worth highlighting:**
-- `evalPerm(agent, "edit")` — one-line permission evaluation helper
+- `evalPerm(agent, "edit")` -- one-line permission evaluation helper
 - Custom agent creation via config objects in `tmpdir()`
 - Permission merge precedence: `rm -rf *` denied but `edit` still allowed
 - `Agent.defaultAgent()` error paths (subagent, hidden, non-existent)
@@ -119,7 +119,7 @@ PermissionNext.evaluate(rules, "bash", "rm -rf node_modules")
     |       Both "deny" and "ask" matched, but "ask" appeared later
     |       --> Result: "ask"
     |
-    |   WAIT — why did "deny" not win?
+    |   WAIT -- why did "deny" not win?
     |   Because rules are evaluated top-to-bottom and the LAST match wins.
     |   This means more specific rules should come FIRST, with fallbacks LAST.
     |
@@ -129,9 +129,9 @@ PermissionNext.evaluate(rules, "bash", "rm -rf node_modules")
 **For bash commands, arity matters.** The `BashArity.prefix()` function extracts command prefixes for matching:
 - `git checkout main` --> matches rules for `git checkout *` or `git *`
 - `aws s3 ls` --> matches `aws s3 *` or `aws *`
-- arity-1 commands: `ls`, `cat`, `echo` — matched by `*`
-- arity-2 commands: `git`, `docker`, `npm` — matched by `git *`
-- arity-3 commands: `aws s3`, `npm run` — matched by `aws s3 *`
+- arity-1 commands: `ls`, `cat`, `echo` -- matched by `*`
+- arity-2 commands: `git`, `docker`, `npm` -- matched by `git *`
+- arity-3 commands: `aws s3`, `npm run` -- matched by `aws s3 *`
 
 This is tested exhaustively in `test/permission/next.test.ts` (1,033 lines).
 
@@ -143,7 +143,7 @@ The TUI supports switching between agents using the **Tab key** (configurable vi
 2. Picker shows all `mode: "primary"` agents that are not `hidden`
 3. User selects an agent (e.g., switches from `build` to `plan`)
 4. The next prompt uses the selected agent's configuration
-5. The agent change applies only to the current session — other sessions retain their agent
+5. The agent change applies only to the current session -- other sessions retain their agent
 
 **What changes when switching:**
 - **Model**: each agent can specify a different model
@@ -156,7 +156,7 @@ The TUI supports switching between agents using the **Tab key** (configurable vi
 - The project context (directory, config)
 - The session-level permission overrides
 
-### 11.7 `Agent.generate()` — AI-Generated Agents
+### 11.7 `Agent.generate()` -- AI-Generated Agents
 
 OpenCode can generate new agent configurations using AI:
 

@@ -142,4 +142,4 @@ Cross-reference: Chapter 25 covers the permission system. Chapter 12 covers pare
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/tool/task.test.ts` | varies | Child session creation, agent selection, abort propagation |
+| `test/tool/task.test.ts` | 45 | Child session creation, agent selection, abort propagation |

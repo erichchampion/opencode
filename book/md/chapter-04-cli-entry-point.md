@@ -1,4 +1,4 @@
-# Chapter 4: CLI Entry Point — Parsing Commands with Yargs
+# Chapter 4: CLI Entry Point -- Parsing Commands with Yargs
 
 > *"Every program begins with `main()`. Ours begins with `yargs.parse()`."*
 
@@ -27,10 +27,10 @@ The file is a top-level script (not a module export). Execution flow:
 2. **yargs chain**: builds the CLI parser with:
    - `.scriptName("opencode")`
    - `.option("print-logs", ...)`, `.option("log-level", ...)`
-   - `.middleware(...)` — async initialization
-   - `.command(...)` — 20+ command registrations
-   - `.fail(...)` — graceful error formatting
-   - `.strict()` — reject unknown arguments
+   - `.middleware(...)` -- async initialization
+   - `.command(...)` -- 20+ command registrations
+   - `.fail(...)` -- graceful error formatting
+   - `.strict()` -- reject unknown arguments
 3. **`await cli.parse()`**: dispatches to the matched command handler
 4. **catch block**: formats errors using `FormatError()` and `UI.error()`
 5. **finally block**: `process.exit()` to kill any hanging subprocesses (e.g., MCP docker containers)
@@ -55,7 +55,7 @@ The `.middleware()` callback runs before any command handler:
 })
 ```
 
-The migration progress bar is a nice UX touch — renders Unicode block characters with orange ANSI colors, handles both TTY and non-TTY output.
+The migration progress bar is a nice UX touch -- renders Unicode block characters with orange ANSI colors, handles both TTY and non-TTY output.
 
 ### 4.3 Registered Commands
 
@@ -76,10 +76,10 @@ The migration progress bar is a nice UX touch — renders Unicode block characte
 ### 4.4 The `cmd()` Helper
 
 Commands use a `cmd()` wrapper (`cli/cmd/cmd.ts`) that provides a consistent interface:
-- `command` — the yargs command string
-- `describe` — help text
-- `builder` — option/argument definitions
-- `handler` — the async execution function
+- `command` -- the yargs command string
+- `describe` -- help text
+- `builder` -- option/argument definitions
+- `handler` -- the async execution function
 
 ### 4.5 Error Handling
 
@@ -107,10 +107,10 @@ process.start
             v
 +-----------------------+
 | .middleware()          |  Runs BEFORE any command handler:
-|                       |  · Log.init() — configure logging
+|                       |  · Log.init() -- configure logging
 |                       |  · Set process.env markers (AGENT, OPENCODE, PID)
-|                       |  · JsonMigration.run() — first-time DB setup
-|                       |  · Installation.check() — detect install mode
+|                       |  · JsonMigration.run() -- first-time DB setup
+|                       |  · Installation.check() -- detect install mode
 +-----------+-----------+
             v
 +-----------------------+
@@ -120,7 +120,7 @@ process.start
 +-----------+-----------+
             v
 +-----------------------+
-| finally block         |  process.exit() — kills hanging subprocesses
+| finally block         |  process.exit() -- kills hanging subprocesses
 +-----------------------+  (MCP docker, LSP servers, etc.)
 ```
 
@@ -139,7 +139,7 @@ The `JsonMigration.run()` function (`storage/json-migration.ts`) handles one-tim
 4. Inserts sessions, messages, and parts into the new database
 5. Renders a progress bar during the process (Unicode block characters with ANSI orange)
 
-This migration only runs once — after the first successful run, the SQLite database exists and the check at step 1 short-circuits.
+This migration only runs once -- after the first successful run, the SQLite database exists and the check at step 1 short-circuits.
 
 ### 4.8 `Installation.isLocal()` and Install Modes
 

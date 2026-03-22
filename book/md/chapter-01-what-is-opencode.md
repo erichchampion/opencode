@@ -6,7 +6,7 @@
 
 ## Introduction
 
-OpenCode (https://github.com/anomalyco/opencode) is a terminal-first AI coding agent that gives large language models the ability to read, write, search, and execute code on your behalf. Unlike IDE-embedded copilots that suggest inline completions, OpenCode operates as a full agentic loop: it receives a natural-language prompt, plans its approach, executes multi-step tool calls, and iterates until the task is done — or it asks you a question.
+OpenCode (https://github.com/anomalyco/opencode) is a terminal-first AI coding agent that gives large language models the ability to read, write, search, and execute code on your behalf. Unlike IDE-embedded copilots that suggest inline completions, OpenCode operates as a full agentic loop: it receives a natural-language prompt, plans its approach, executes multi-step tool calls, and iterates until the task is done -- or it asks you a question.
 
 The project is MIT-licensed and hosted at https://github.com/anomalyco/opencode.
 
@@ -30,7 +30,7 @@ The project is MIT-licensed and hosted at https://github.com/anomalyco/opencode.
 ### 1.1 Agent vs. Assistant
 
 - **Assistants** respond to a single prompt; **agents** loop: prompt --> plan --> act --> observe --> continue
-- OpenCode implements a multi-step agentic loop in `session/prompt.ts` — the `loop()` function runs until the model emits a finish reason that is not `tool-calls`
+- OpenCode implements a multi-step agentic loop in `session/prompt.ts` -- the `loop()` function runs until the model emits a finish reason that is not `tool-calls`
 - Key insight: the model's finish reason drives continuation logic
 
 ### 1.2 Design Philosophy
@@ -83,7 +83,7 @@ On first launch, OpenCode:
                        | HTTP / in-process fetch
 +----------------------v----------------------------------+
 |                   Hono HTTP Server                        |
-|         (server/server.ts — routes, OpenAPI)              |
+|         (server/server.ts -- routes, OpenAPI)              |
 +---------------------------------------------------------+
 | Session Layer   | Agent Layer   | Provider Layer          |
 | (session/*.ts)  | (agent.ts)    | (provider/provider.ts)  |
@@ -120,32 +120,32 @@ $ opencode
 ~ Running: npm run typecheck
 ~ Edit src/components/SortableTable.tsx (fixing type error)
 ~ Running: npm run typecheck
-[x] Done — created src/components/SortableTable.tsx
+[x] Done -- created src/components/SortableTable.tsx
 ```
 
-The user types one sentence and watches a stream of status updates scroll past. It looks almost trivially simple — but behind those seven lines, the entire system activates:
+The user types one sentence and watches a stream of status updates scroll past. It looks almost trivially simple -- but behind those seven lines, the entire system activates:
 
 **What the engine does** (abbreviated trace):
 
-1. **CLI** (`src/index.ts`) — parses the command, invokes the `tui` or `run` handler
-2. **Bootstrap** (`cli/bootstrap.ts`) — discovers the project root, detects git, opens the SQLite database, starts the HTTP server
-3. **Session** (`session/index.ts`) — creates a session record with a unique ID, persists it to SQLite
-4. **Prompt** (`session/prompt.ts`) — stores the user message, resolves attached files, enters the agentic loop
-5. **System prompt** (`session/system.ts`) — assembles the model's instructions: base rules, project context, tool list, skill docs
-6. **Agent resolution** (`agent/agent.ts`) — loads the `build` agent with its model, permissions, and tool set
-7. **LLM bridge** (`session/llm.ts`) — calls `streamText()` from the AI SDK with all the assembled options
-8. **Stream processing** (`session/processor.ts`) — consumes the token stream, detects tool calls, emits bus events
-9. **Tool execution** (`tool/*.ts`) — runs each tool (read, write, bash) through the permission system
-10. **Loop iteration** — the `loop()` function detects `finishReason === "tool-calls"` and calls the LLM again
-11. **Verification** — the model calls `bash` to run the type checker, reads the output, makes corrections
-12. **Compaction** (if needed, `session/compaction.ts`) — summarizes earlier messages when the context window fills
-13. **Completion** — the model returns `finishReason === "stop"` and the loop exits
+1. **CLI** (`src/index.ts`) -- parses the command, invokes the `tui` or `run` handler
+2. **Bootstrap** (`cli/bootstrap.ts`) -- discovers the project root, detects git, opens the SQLite database, starts the HTTP server
+3. **Session** (`session/index.ts`) -- creates a session record with a unique ID, persists it to SQLite
+4. **Prompt** (`session/prompt.ts`) -- stores the user message, resolves attached files, enters the agentic loop
+5. **System prompt** (`session/system.ts`) -- assembles the model's instructions: base rules, project context, tool list, skill docs
+6. **Agent resolution** (`agent/agent.ts`) -- loads the `build` agent with its model, permissions, and tool set
+7. **LLM bridge** (`session/llm.ts`) -- calls `streamText()` from the AI SDK with all the assembled options
+8. **Stream processing** (`session/processor.ts`) -- consumes the token stream, detects tool calls, emits bus events
+9. **Tool execution** (`tool/*.ts`) -- runs each tool (read, write, bash) through the permission system
+10. **Loop iteration** -- the `loop()` function detects `finishReason === "tool-calls"` and calls the LLM again
+11. **Verification** -- the model calls `bash` to run the type checker, reads the output, makes corrections
+12. **Compaction** (if needed, `session/compaction.ts`) -- summarizes earlier messages when the context window fills
+13. **Completion** -- the model returns `finishReason === "stop"` and the loop exits
 
 Steps 7-11 repeat multiple times. What the user experiences as "a few status lines" is often 3-8 full round trips to the LLM, each with hundreds of tool calls in between.
 
-### 1.6 A Prompt's Journey Through Every Layer
+### 1.7 A Prompt's Journey Through Every Layer
 
-The following diagram traces a single user prompt from entry to exit, showing every major subsystem it touches. This is the roadmap for the rest of the book — each numbered step corresponds to one or more chapters.
+The following diagram traces a single user prompt from entry to exit, showing every major subsystem it touches. This is the roadmap for the rest of the book -- each numbered step corresponds to one or more chapters.
 
 ```
 User Input

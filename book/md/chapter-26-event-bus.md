@@ -176,5 +176,6 @@ Cross-reference: Chapter 7 covers the HTTP server and SSE endpoint.
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
 | `test/session/compaction.test.ts` | 423 | Events published during compaction |
-| `test/server/event.test.ts` | varies | SSE event streaming via GlobalBus |
+| `test/control-plane/sse.test.ts` | 56 | SSE event streaming via server |
+| `test/acp/event-subscription.test.ts` | 683 | Event subscription and delivery patterns |
 

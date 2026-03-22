@@ -1,4 +1,4 @@
-# Chapter 2: Repository Tour — From Monorepo Root to Source Tree
+# Chapter 2: Repository Tour -- From Monorepo Root to Source Tree
 
 > *"Good architecture is the art of knowing where things go."*
 
@@ -6,7 +6,7 @@
 
 ## Introduction
 
-Before diving into execution flow, we need a map. This chapter walks through the monorepo structure, explains the role of each package, and zooms into the `packages/opencode/src/` directory — the heart of the agent engine.
+Before diving into execution flow, we need a map. This chapter walks through the monorepo structure, explains the role of each package, and zooms into the `packages/opencode/src/` directory -- the heart of the agent engine.
 
 ### What You'll Learn
 
@@ -45,14 +45,14 @@ opencode/
 
 Key top-level packages:
 - `packages/opencode` -- the core agent engine (CLI, server, session, tools, providers). This is where nearly all of the code lives: 339 TypeScript files across 39 subdirectories.
-- `packages/app` — web app frontend (SolidJS)
-- `packages/sdk/js` — TypeScript SDK for programmatic access
-- `packages/plugin` — plugin API definitions
-- `packages/desktop` / `desktop-electron` — Tauri-based desktop app
-- `packages/console` — management console
-- `packages/ui` — shared UI component library
-- `packages/web` — marketing/landing page
-- `packages/util` — shared utilities (error types, slugs)
+- `packages/app` -- web app frontend (SolidJS)
+- `packages/sdk/js` -- TypeScript SDK for programmatic access
+- `packages/plugin` -- plugin API definitions
+- `packages/desktop` / `desktop-electron` -- Tauri-based desktop app
+- `packages/console` -- management console
+- `packages/ui` -- shared UI component library
+- `packages/web` -- marketing/landing page
+- `packages/util` -- shared utilities (error types, slugs)
 
 ### 2.2 Test and Script Directories
 
@@ -114,18 +114,18 @@ Build and code generation scripts live in `packages/opencode/script/`.
 
 ### 2.4 File Naming Patterns
 
-- `*.ts` — implementation modules
-- `*.txt` — prompt templates (embedded via `import PROMPT from "./file.txt"`)
-- `*.sql.ts` — Drizzle ORM schema definitions
-- `schema.ts` — Zod schema/type definitions
-- `index.ts` — namespace barrel exports
+- `*.ts` -- implementation modules
+- `*.txt` -- prompt templates (embedded via `import PROMPT from "./file.txt"`)
+- `*.sql.ts` -- Drizzle ORM schema definitions
+- `schema.ts` -- Zod schema/type definitions
+- `index.ts` -- namespace barrel exports
 
 ### 2.5 Key Entry Files
 
-- `src/index.ts` — CLI entry point (yargs setup)
-- `src/cli/bootstrap.ts` — project instance initialization
-- `src/server/server.ts` — HTTP server creation
-- `src/session/prompt.ts` — main agent orchestration loop
+- `src/index.ts` -- CLI entry point (yargs setup)
+- `src/cli/bootstrap.ts` -- project instance initialization
+- `src/server/server.ts` -- HTTP server creation
+- `src/session/prompt.ts` -- main agent orchestration loop
 
 ### 2.6 The `catalog:` Workspace Dependency Syntax
 
@@ -137,7 +137,7 @@ Throughout the repo's `package.json` files, you'll see dependencies declared as:
 "ai": "catalog:",
 ```
 
-This is a **Bun workspace catalog** — a centralized version pinning mechanism. The root `package.json` defines a `catalog` section:
+This is a **Bun workspace catalog** -- a centralized version pinning mechanism. The root `package.json` defines a `catalog` section:
 
 ```json
 {
@@ -154,9 +154,9 @@ This is a **Bun workspace catalog** — a centralized version pinning mechanism.
 }
 ```
 
-When a child package declares `"hono": "catalog:"`, Bun resolves it to the version specified in the root catalog. This ensures every package in the monorepo uses exactly the same version of shared dependencies — no more version drift between `packages/opencode` and `packages/app`.
+When a child package declares `"hono": "catalog:"`, Bun resolves it to the version specified in the root catalog. This ensures every package in the monorepo uses exactly the same version of shared dependencies -- no more version drift between `packages/opencode` and `packages/app`.
 
-**Why this matters for understanding the codebase:** When you see `catalog:` in `packages/opencode/package.json`, don't go looking for the version there — it's in the root `package.json`'s `catalog` section.
+**Why this matters for understanding the codebase:** When you see `catalog:` in `packages/opencode/package.json`, don't go looking for the version there -- it's in the root `package.json`'s `catalog` section.
 
 ### 2.7 Auxiliary Directories
 
@@ -166,7 +166,7 @@ Beyond `src/`, the `packages/opencode/` directory contains several important aux
 |-----------|---------|
 | `test/` | 111 test files organized into subdirectories mirroring `src/` (e.g., `test/agent/`, `test/session/`, `test/tool/`). Tests use `bun:test` and a shared `fixture.ts` helper for temp directory management. |
 | `test/fixture/` | Test infrastructure: `fixture.ts` (temp dir creation with git, config, and `Symbol.asyncDispose`), `fixture.test.ts`, `instance.ts` (instance helpers), `db.ts` (database helpers), mock LSP servers, and sample skill definitions. |
-| `migration/` | Drizzle ORM migration files — SQL scripts that evolve the SQLite schema over time. Used by `JsonMigration.run()` during bootstrap. |
+| `migration/` | Drizzle ORM migration files -- SQL scripts that evolve the SQLite schema over time. Used by `JsonMigration.run()` during bootstrap. |
 | `script/` | Build and release scripts: `build.ts` (compiles the production binary), `version.ts`, and packaging helpers. |
 | `specs/` | OpenAPI specification files used for SDK generation and API documentation. |
 | `bin/` | The `opencode` shell script entry point that launches the Bun runtime. |

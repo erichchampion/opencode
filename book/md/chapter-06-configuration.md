@@ -1,4 +1,4 @@
-# Chapter 6: Configuration — Loading, Merging, and Validating Settings
+# Chapter 6: Configuration -- Loading, Merging, and Validating Settings
 
 > *"Configuration is the contract between the developer and the tool."*
 
@@ -47,7 +47,7 @@ Managed by `config/paths.ts`:
 
 ### 6.4 The `Config.get()` Pattern
 
-Returns the merged, validated configuration. Uses `Instance.state()` for caching — computed once per instance.
+Returns the merged, validated configuration. Uses `Instance.state()` for caching -- computed once per instance.
 
 ---
 
@@ -77,7 +77,7 @@ Configuration has the most extensive test coverage in the project:
 
 ### 6.5 Configuration Examples
 
-**Minimal `opencode.json`** — just set a provider and model:
+**Minimal `opencode.json`** -- just set a provider and model:
 
 ```jsonc
 {
@@ -90,7 +90,7 @@ Configuration has the most extensive test coverage in the project:
 }
 ```
 
-**Full `opencode.json`** — demonstrating most available options:
+**Full `opencode.json`** -- demonstrating most available options:
 
 ```jsonc
 {
@@ -154,7 +154,7 @@ Configuration has the most extensive test coverage in the project:
 }
 ```
 
-Note the `{env:VARIABLE}` and `{file:path}` substitution syntax — values are resolved at config load time. This allows secrets to stay out of checked-in config files.
+Note the `{env:VARIABLE}` and `{file:path}` substitution syntax -- values are resolved at config load time. This allows secrets to stay out of checked-in config files.
 
 ### 6.6 Environment Variable Overrides
 
@@ -167,8 +167,8 @@ OpenCode supports several environment variable patterns:
 | `OPENCODE_FLAG_<NAME>` | Enable/disable feature flags | `OPENCODE_FLAG_STREAMING=true` |
 | `OPENCODE_SERVER_PASSWORD` | Enable basic auth on the HTTP server | `OPENCODE_SERVER_PASSWORD=secret` |
 | `OPENCODE_DIR` | Override project directory detection | `OPENCODE_DIR=/my/project` |
-| `AGENT=1` | Set by OpenCode itself — indicates running inside an agent | Auto-set |
-| `OPENCODE=1` | Set by OpenCode — indicates the process is OpenCode | Auto-set |
+| `AGENT=1` | Set by OpenCode itself -- indicates running inside an agent | Auto-set |
+| `OPENCODE=1` | Set by OpenCode -- indicates the process is OpenCode | Auto-set |
 
 Environment variables take precedence over config file values. The merge order is:
 

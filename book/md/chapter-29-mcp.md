@@ -195,4 +195,6 @@ Servers can be disabled in config (`enabled: false`), which prevents them from c
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/mcp/mcp.test.ts` | varies | MCP server connection, tool discovery, tool execution, disconnect/reconnect |
+| `test/mcp/oauth-browser.test.ts` | 249 | Full OAuth browser flow for MCP server authentication |
+| `test/mcp/oauth-auto-connect.test.ts` | 199 | Automatic reconnection and OAuth token refresh |
+| `test/mcp/headers.test.ts` | 153 | Custom header injection for MCP server requests |

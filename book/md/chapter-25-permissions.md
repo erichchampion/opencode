@@ -201,6 +201,6 @@ Static rules in `opencode.json` persist indefinitely and are version-controllabl
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/permission/evaluate.test.ts` | varies | Rule evaluation with multiple rulesets, wildcard matching, precedence |
-| `test/permission/arity.test.ts` | varies | Arity prefix extraction for bash command permissions |
+| `test/permission/next.test.ts` | 1,032 | Rule evaluation with multiple rulesets, wildcard matching, precedence |
+| `test/permission/arity.test.ts` | 33 | Arity prefix extraction for bash command permissions |
 | `test/tool/external-directory.test.ts` | 128 | External directory permission flow end-to-end |

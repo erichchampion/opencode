@@ -1,4 +1,4 @@
-# Chapter 8: The Provider Abstraction — One Interface, Twenty Backends
+# Chapter 8: The Provider Abstraction -- One Interface, Twenty Backends
 
 > *"The best abstraction makes the impossible feel inevitable."*
 
@@ -6,14 +6,14 @@
 
 ## Introduction
 
-OpenCode is radically provider-agnostic — it can talk to Anthropic, OpenAI, Google, Amazon Bedrock, Azure, local Ollama instances, and a dozen more. This chapter explains how the provider layer achieves this through the Vercel AI SDK's provider abstraction.
+OpenCode is radically provider-agnostic -- it can talk to Anthropic, OpenAI, Google, Amazon Bedrock, Azure, local Ollama instances, and a dozen more. This chapter explains how the provider layer achieves this through the Vercel AI SDK's provider abstraction.
 
 ### What You'll Learn
 
 - The `Provider` namespace and model registry
 - How providers are discovered, loaded, and configured
 - The `BUNDLED_PROVIDERS` map and `CUSTOM_LOADERS` pattern
-- The `Provider.Model` schema — capabilities, costs, limits
+- The `Provider.Model` schema -- capabilities, costs, limits
 - The `models.dev` data source for model metadata
 
 ---
@@ -22,7 +22,7 @@ OpenCode is radically provider-agnostic — it can talk to Anthropic, OpenAI, Go
 
 ### 8.1 Bundled Providers
 
-`provider/provider.ts` defines `BUNDLED_PROVIDERS` — a map from npm package names to factory functions:
+`provider/provider.ts` defines `BUNDLED_PROVIDERS` -- a map from npm package names to factory functions:
 
 ```typescript
 const BUNDLED_PROVIDERS = {
@@ -120,7 +120,7 @@ Provider handling has the most complex test suite in the project:
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
 | `test/provider/provider.test.ts` | 2,284 | Model resolution, `Provider.getModel()`, fuzzy matching, config overrides, default model fallback, model capability detection, cost/limit metadata |
-| `test/provider/transform.test.ts` | 2,655 | `ProviderTransform.options()`, `ProviderTransform.message()`, `ProviderTransform.providerOptions()` — per-provider message/options transformation for every supported provider |
+| `test/provider/transform.test.ts` | 2,655 | `ProviderTransform.options()`, `ProviderTransform.message()`, `ProviderTransform.providerOptions()` -- per-provider message/options transformation for every supported provider |
 | `test/provider/amazon-bedrock.test.ts` | 447 | AWS credential chain, region detection, cross-region inference prefixes, profile selection |
 | `test/provider/copilot/convert-to-copilot-messages.test.ts` | 523 | Message format conversion for GitHub Copilot integration |
 | `test/provider/copilot/copilot-chat-model.test.ts` | 592 | Copilot chat model streaming and tool calling |
@@ -128,7 +128,7 @@ Provider handling has the most complex test suite in the project:
 
 ---
 
-### 8.5 Adding a New Provider: A Walkthrough
+### 8.6 Adding a New Provider: A Walkthrough
 
 To understand the provider abstraction, let's trace what it would take to add a hypothetical new provider:
 
@@ -174,7 +174,7 @@ Model metadata comes from models.dev (`provider/models.ts`). If your provider is
 
 **Step 4: Add a custom loader (optional)**
 
-If the provider needs special initialization — custom auth, region detection, non-standard endpoints — add it to `CUSTOM_LOADERS`:
+If the provider needs special initialization -- custom auth, region detection, non-standard endpoints -- add it to `CUSTOM_LOADERS`:
 
 ```typescript
 const CUSTOM_LOADERS = {
@@ -189,11 +189,11 @@ const CUSTOM_LOADERS = {
 
 If the provider has message format quirks (e.g., different image encoding, incompatible tool call schemas), add cases in `provider/transform.ts`.
 
-That's it — the rest of the system (agents, sessions, tools) works automatically because it only interacts with the AI SDK's `LanguageModel` interface.
+That's it -- the rest of the system (agents, sessions, tools) works automatically because it only interacts with the AI SDK's `LanguageModel` interface.
 
-### 8.6 The SSE Timeout Wrapper
+### 8.7 The SSE Timeout Wrapper
 
-LLM API calls can hang — network issues, provider outages, or extremely long generations. The `wrapSSE()` utility addresses this:
+LLM API calls can hang -- network issues, provider outages, or extremely long generations. The `wrapSSE()` utility addresses this:
 
 ```typescript
 // When streaming from providers, the response is wrapped with a timeout
@@ -206,9 +206,9 @@ The wrapper:
 3. If the timer fires (no data for N seconds), it aborts the connection with a timeout error
 4. The timeout error is classified as retryable by `SessionRetry.retryable()`
 
-This prevents sessions from getting stuck indefinitely when a provider stops sending data mid-stream — a real-world issue with many LLM APIs.
+This prevents sessions from getting stuck indefinitely when a provider stops sending data mid-stream -- a real-world issue with many LLM APIs.
 
-### 8.7 The `ProviderTransform` Layer
+### 8.8 The `ProviderTransform` Layer
 
 The `ProviderTransform` module (`provider/transform.ts`, ~33K) is the provider compatibility layer. It handles the reality that every provider has its own quirks:
 

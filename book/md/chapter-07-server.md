@@ -1,4 +1,4 @@
-# Chapter 7: The Server — Building an HTTP API with Hono
+# Chapter 7: The Server -- Building an HTTP API with Hono
 
 > *"Every agent needs a nervous system. Ours runs on HTTP."*
 
@@ -24,12 +24,12 @@ OpenCode's server is the bridge between clients and the agent engine. Built with
 
 `Server.createApp()` builds a Hono app with:
 
-1. **Error handler** — converts `NamedError`, `HTTPException`, and unknown errors to structured JSON
-2. **Auth middleware** — optional basic auth via `OPENCODE_SERVER_PASSWORD`
-3. **Logging middleware** — request/response timing
-4. **CORS middleware** — allows localhost, tauri, and *.opencode.ai origins
-5. **Directory resolution** — reads `x-opencode-directory` header or query param
-6. **Instance.provide()** — each request gets a scoped project instance
+1. **Error handler** -- converts `NamedError`, `HTTPException`, and unknown errors to structured JSON
+2. **Auth middleware** -- optional basic auth via `OPENCODE_SERVER_PASSWORD`
+3. **Logging middleware** -- request/response timing
+4. **CORS middleware** -- allows localhost, tauri, and *.opencode.ai origins
+5. **Directory resolution** -- reads `x-opencode-directory` header or query param
+6. **Instance.provide()** -- each request gets a scoped project instance
 
 ### 7.2 Route Modules
 
@@ -101,7 +101,7 @@ Real-time communication uses SSE:
 | `test/server/session-messages.test.ts` | 119 | Message retrieval endpoint |
 | `test/server/global-session-list.test.ts` | 89 | Cross-project session listing |
 | `test/server/project-init-git.test.ts` | 121 | Project initialization via API |
-| `test/control-plane/session-proxy-middleware.test.ts` | 159 | Workspace routing middleware — how requests are proxied to the correct workspace server |
+| `test/control-plane/session-proxy-middleware.test.ts` | 159 | Workspace routing middleware -- how requests are proxied to the correct workspace server |
 | `test/control-plane/sse.test.ts` | 56 | Server-Sent Events streaming |
 | `test/control-plane/workspace-server-sse.test.ts` | 70 | Workspace-level SSE |
 | `test/control-plane/workspace-sync.test.ts` | 99 | Workspace state synchronization |
@@ -195,4 +195,4 @@ This enables the **control plane** architecture: a central server can host multi
 - **Local workspace**: the request is handled in-process, with `Instance.provide()` scoping it to the correct project directory
 - **Remote workspace**: the request is proxied to the workspace's dedicated server, using `hono/proxy`
 
-This is what makes the cloud-hosted version of OpenCode possible — the same codebase can run as a local CLI tool or as a multi-tenant workspace server.
+This is what makes the cloud-hosted version of OpenCode possible -- the same codebase can run as a local CLI tool or as a multi-tenant workspace server.

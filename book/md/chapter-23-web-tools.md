@@ -108,11 +108,11 @@ batch({
 ```
 
 Key behaviors:
-- **Parallel execution** — all calls run via `Promise.all()` and results are aggregated
-- **Max 25 calls** — calls beyond 25 are recorded as errors
-- **Cannot nest** — `batch` cannot call itself (prevents recursive parallel execution)
-- **No MCP tools** — external tools (MCP, environment) cannot be batched; only built-in tools
-- **Individual tracking** — each sub-call gets its own `ToolPart` in the TUI with independent status
+- **Parallel execution** -- all calls run via `Promise.all()` and results are aggregated
+- **Max 25 calls** -- calls beyond 25 are recorded as errors
+- **Cannot nest** -- `batch` cannot call itself (prevents recursive parallel execution)
+- **No MCP tools** -- external tools (MCP, environment) cannot be batched; only built-in tools
+- **Individual tracking** -- each sub-call gets its own `ToolPart` in the TUI with independent status
 
 This is an experimental tool (requires `experimental.batch_tool: true` in config).
 
@@ -141,7 +141,7 @@ The tool blocks execution until the user responds. Answers are returned formatte
 
 Two tools for session-scoped task tracking:
 
-**`todowrite`** — updates the session's todo list:
+**`todowrite`** -- updates the session's todo list:
 ```
 todowrite({ todos: [
   { content: "Set up database", status: "completed" },
@@ -150,7 +150,7 @@ todowrite({ todos: [
 ] })
 ```
 
-**`todoread`** — reads the current todo list. Currently commented out in the registry (the model can use `todowrite` to both read and update).
+**`todoread`** -- reads the current todo list. Currently commented out in the registry (the model can use `todowrite` to both read and update).
 
 Todos are stored per-session and displayed in the TUI's sidebar. They help the model track progress on multi-step tasks.
 
@@ -193,5 +193,5 @@ The skill tool's description dynamically lists available skills, so the model kn
 
 | Test File | Lines | What It Demonstrates |
 |-----------|-------|---------------------|
-| `test/tool/webfetch.test.ts` | varies | URL fetching, HTML conversion, timeout, error handling |
+| `test/tool/webfetch.test.ts` | 101 | URL fetching, HTML conversion, timeout, error handling |
 | `test/tool/skill.test.ts` | 163 | Skill loading, file listing, content formatting |
