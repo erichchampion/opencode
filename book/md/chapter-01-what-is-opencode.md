@@ -89,9 +89,9 @@ On first launch, OpenCode:
 | (session/*.ts)  | (agent.ts)    | (provider/provider.ts)  |
 +-----------------+---------------+-----------------------+
 |            Tool Registry  (tool/registry.ts)             |
-|   bash · read · write · edit · grep · glob · webfetch ...  |
+|   bash - read - write - edit - grep - glob - webfetch ...  |
 +---------------------------------------------------------+
-|          Permission · Bus · Snapshot · MCP · LSP          |
+|          Permission - Bus - Snapshot - MCP - LSP          |
 +---------------------------------------------------------+
 ```
 
@@ -156,45 +156,45 @@ User Input
 +--------+-----------+                                          |
          v                                                      |
 +--------------------+    Ch 5                                  |
-| Bootstrap          |    · project discovery                   |
-|                    |    · database init                       |
-|                    |    · server start                        |
+| Bootstrap          |    - project discovery                   |
+|                    |    - database init                       |
+|                    |    - server start                        |
 +--------+-----------+                                          |
          v                                                      |
 +--------------------+    Ch 6, 11                              |
-| Config + Agent     |    · load opencode.json                  |
-| Resolution         |    · resolve build agent                 |
-|                    |    · merge permissions                   |
+| Config + Agent     |    - load opencode.json                  |
+| Resolution         |    - resolve build agent                 |
+|                    |    - merge permissions                   |
 +--------+-----------+                                          |
          v                                                      |
 +--------------------+    Ch 14                                 |
-| Prompt Ingestion   |    · parse user text                     |
-|                    |    · resolve @file references             |
-|                    |    · store user message                  |
+| Prompt Ingestion   |    - parse user text                     |
+|                    |    - resolve @file references             |
+|                    |    - store user message                  |
 +--------+-----------+                                          |
          v                                                      |
 +--------------------------------------------+                  |
 |           AGENTIC LOOP (Ch 18)             |                  |
 |  +--------------------------------------+  |                  |
 |  | System Prompt Assembly (Ch 15)       |  |                  |
-|  |  · base rules + tools + environment |  |                  |
+|  |  - base rules + tools + environment |  |                  |
 |  +----------+---------------------------+  |                  |
 |             v                              |                  |
 |  +--------------------------------------+  |                  |
 |  | LLM Call (Ch 8, 9, 16)              |  |                  |
-|  |  · provider --> model --> streamText()  |  |                  |
+|  |  - provider --> model --> streamText()  |  |                  |
 |  +----------+---------------------------+  |                  |
 |             v                              |                  |
 |  +--------------------------------------+  |                  |
 |  | Stream Processing (Ch 17)           |  |                  |
-|  |  · tokens --> parts --> bus events      |  |                  |
+|  |  - tokens --> parts --> bus events      |  |                  |
 |  +----------+---------------------------+  |                  |
 |             v                              |                  |
 |  +--------------------------------------+  |                  |
 |  | Tool Execution (Ch 19-24)           |  |                  |
-|  |  · permission check (Ch 25)         |  |                  |
-|  |  · run tool --> return result         |  |                  |
-|  |  · snapshot file changes (Ch 27)    |  |                  |
+|  |  - permission check (Ch 25)         |  |                  |
+|  |  - run tool --> return result         |  |                  |
+|  |  - snapshot file changes (Ch 27)    |  |                  |
 |  +----------+---------------------------+  |                  |
 |             v                              |                  |
 |  finishReason === "tool-calls"? --Yes--> LOOP |              |
@@ -208,12 +208,12 @@ User Input
          |                                                      |
          v                                                      |
 +--------------------+    Ch 12, 13                             |
-| Session Persist    |    · store assistant message             |
-|                    |    · update session title                |
+| Session Persist    |    - store assistant message             |
+|                    |    - update session title                |
 +--------+-----------+                                          |
          v                                                      |
 +--------------------+    Ch 26, 31-33                          |
-| Bus --> Client       |    · SSE events --> TUI/web/SDK           |
+| Bus --> Client       |    - SSE events --> TUI/web/SDK           |
 +--------------------+                                          |
 ```
 

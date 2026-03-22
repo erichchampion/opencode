@@ -107,16 +107,16 @@ process.start
             v
 +-----------------------+
 | .middleware()          |  Runs BEFORE any command handler:
-|                       |  · Log.init() -- configure logging
-|                       |  · Set process.env markers (AGENT, OPENCODE, PID)
-|                       |  · JsonMigration.run() -- first-time DB setup
-|                       |  · Installation.check() -- detect install mode
+|                       |  - Log.init() -- configure logging
+|                       |  - Set process.env markers (AGENT, OPENCODE, PID)
+|                       |  - JsonMigration.run() -- first-time DB setup
+|                       |  - Installation.check() -- detect install mode
 +-----------+-----------+
             v
 +-----------------------+
 | Command Handler       |  e.g., RunCommand, TuiCommand, ServeCommand
-|                       |  · bootstrap(directory, callback)
-|                       |  · Instance.provide() --> Instance.dispose()
+|                       |  - bootstrap(directory, callback)
+|                       |  - Instance.provide() --> Instance.dispose()
 +-----------+-----------+
             v
 +-----------------------+

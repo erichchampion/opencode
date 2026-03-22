@@ -199,7 +199,7 @@ Security relies entirely on the permission system: every command must be approve
 - **Pro**: Commands work exactly as they would in a regular terminal (no path translation, no filesystem mounts, no network isolation surprises)
 - **Con**: A malicious or confused model with blanket permissions could modify system files
 
-The arity-based permission system (§22.4) mitigates this by letting users approve categories (`npm install *`) rather than blanket shell access.
+The arity-based permission system (S22.4) mitigates this by letting users approve categories (`npm install *`) rather than blanket shell access.
 
 ---
 

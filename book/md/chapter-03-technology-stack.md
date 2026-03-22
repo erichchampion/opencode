@@ -151,7 +151,7 @@ The key advantage for OpenCode: **Hono runs natively on Bun** without adapter sh
 
 ### 3.9 The `catalog:` Workspace Dependency Resolution
 
-(See also Chapter 2, §2.5 for context.)
+(See also Chapter 2, S2.5 for context.)
 
 The `catalog:` syntax is specifically a Bun workspace feature. When Bun resolves `"ai": "catalog:"` in a child package:
 
