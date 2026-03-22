@@ -106,7 +106,7 @@ process.start
 +-----------+-----------+
             v
 +-----------------------+
-| .middleware()          |  Runs BEFORE any command handler:
+| .middleware()         |  Runs BEFORE any command handler:
 |                       |  - Log.init() -- configure logging
 |                       |  - Set process.env markers (AGENT, OPENCODE, PID)
 |                       |  - JsonMigration.run() -- first-time DB setup

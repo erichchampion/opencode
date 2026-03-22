@@ -79,23 +79,23 @@ On first launch, OpenCode:
 ### 1.4 Architecture at 10,000 Feet
 
 ```
-+---------------------------------------------------------+
-|                     CLI / TUI / Web                      |
-|                    (opencode-ai/sdk)                      |
-+----------------------+----------------------------------+
-                       | HTTP / in-process fetch
-+----------------------v----------------------------------+
-|                   Hono HTTP Server                        |
-|         (server/server.ts -- routes, OpenAPI)              |
-+---------------------------------------------------------+
++-----------------------------------------------------------+
+|                      CLI / TUI / Web                      |
+|                     (opencode-ai/sdk)                     |
++------------------------+---------------------------------+
+                         | HTTP / in-process fetch
++------------------------v---------------------------------+
+|                    Hono HTTP Server                       |
+|          (server/server.ts -- routes, OpenAPI)            |
++-----------------------------------------------------------+
 | Session Layer   | Agent Layer   | Provider Layer          |
 | (session/*.ts)  | (agent.ts)    | (provider/provider.ts)  |
-+-----------------+---------------+-----------------------+
-|            Tool Registry  (tool/registry.ts)             |
-|   bash - read - write - edit - grep - glob - webfetch ...  |
-+---------------------------------------------------------+
-|          Permission - Bus - Snapshot - MCP - LSP          |
-+---------------------------------------------------------+
++-----------------+---------------+-------------------------+
+|             Tool Registry (tool/registry.ts)              |
+|   bash - read - write - edit - grep - glob - webfetch     |
++-----------------------------------------------------------+
+|           Permission - Bus - Snapshot - MCP - LSP         |
++-----------------------------------------------------------+
 ```
 
 ### 1.5 How OpenCode Differs from Claude Code
@@ -154,69 +154,70 @@ The following diagram traces a single user prompt from entry to exit, showing ev
 User Input
     |
     v
-+--------------------+    Ch 4
++--------------------+  Ch 4
 | CLI Entry (yargs)  |------------------------------------------+
 +--------+-----------+                                          |
          v                                                      |
-+--------------------+    Ch 5                                  |
-| Bootstrap          |    - project discovery                   |
-|                    |    - database init                       |
-|                    |    - server start                        |
++--------------------+  Ch 5                                    |
+| Bootstrap          |  - project discovery                     |
+|                    |  - database init                         |
+|                    |  - server start                          |
 +--------+-----------+                                          |
          v                                                      |
-+--------------------+    Ch 6, 11                              |
-| Config + Agent     |    - load opencode.json                  |
-| Resolution         |    - resolve build agent                 |
-|                    |    - merge permissions                   |
++--------------------+  Ch 6, 11                                |
+| Config + Agent     |  - load opencode.json                    |
+| Resolution         |  - resolve build agen                    |
+|                    |  - merge permissions                     |
 +--------+-----------+                                          |
          v                                                      |
-+--------------------+    Ch 14                                 |
-| Prompt Ingestion   |    - parse user text                     |
-|                    |    - resolve @file references             |
-|                    |    - store user message                  |
++--------------------+  Ch 14                                   |
+| Prompt Ingestion   |  - parse user text                       |
+|                    |  - resolve @file references              |
+|                    |  - store user message                    |
 +--------+-----------+                                          |
          v                                                      |
-+--------------------------------------------+                  |
-|           AGENTIC LOOP (Ch 18)             |                  |
-|  +--------------------------------------+  |                  |
-|  | System Prompt Assembly (Ch 15)       |  |                  |
-|  |  - base rules + tools + environment |  |                  |
-|  +----------+---------------------------+  |                  |
-|             v                              |                  |
-|  +--------------------------------------+  |                  |
-|  | LLM Call (Ch 8, 9, 16)              |  |                  |
-|  |  - provider --> model --> streamText()  |  |                  |
-|  +----------+---------------------------+  |                  |
-|             v                              |                  |
-|  +--------------------------------------+  |                  |
-|  | Stream Processing (Ch 17)           |  |                  |
-|  |  - tokens --> parts --> bus events      |  |                  |
-|  +----------+---------------------------+  |                  |
-|             v                              |                  |
-|  +--------------------------------------+  |                  |
-|  | Tool Execution (Ch 19-24)           |  |                  |
-|  |  - permission check (Ch 25)         |  |                  |
-|  |  - run tool --> return result         |  |                  |
-|  |  - snapshot file changes (Ch 27)    |  |                  |
-|  +----------+---------------------------+  |                  |
-|             v                              |                  |
-|  finishReason === "tool-calls"? --Yes--> LOOP |              |
-|             | No                           |                  |
-|             v                              |                  |
-|  Compaction needed? (Ch 28) --Yes--> LOOP  |                 |
-|             | No                           |                  |
-|             v                              |                  |
-|          EXIT LOOP                         |                  |
-+--------------------------------------------+                  |
++------------------------------------------------+              |
+|              AGENTIC LOOP (Ch 18)              |              |
+|                                                |              |
+|  +------------------------------------------+  |              |
+|  | System Prompt Assembly (Ch 15)           |  |              |
+|  |  - base rules + tools + environment      |  |              |
+|  +--------------------+---------------------+  |              |
+|                       v                        |              |
+|  +------------------------------------------+  |              |
+|  | LLM Call (Ch 8, 9, 16)                   |  |              |
+|  |  - provider --> model --> streamText()   |  |              |
+|  +--------------------+---------------------+  |              |
+|                       v                        |              |
+|  +------------------------------------------+  |              |
+|  | Stream Processing (Ch 17)                |  |              |
+|  |  - tokens --> parts --> bus events       |  |              |
+|  +--------------------+---------------------+  |              |
+|                       v                        |              |
+|  +------------------------------------------+  |              |
+|  | Tool Execution (Ch 19-24)                |  |              |
+|  |  - permission check (Ch 25)              |  |              |
+|  |  - run tool --> return result            |  |              |
+|  |  - snapshot file changes (Ch 27)         |  |              |
+|  +--------------------+---------------------+  |              |
+|                       v                        |              |
+|  finishReason === "tool-calls"? --Yes--> LOOP  |              |
+|                       | No                     |              |
+|                       v                        |              |
+|  Compaction needed? (Ch 28) --Yes--> LOOP      |              |
+|                       | No                     |              |
+|                       v                        |              |
+|                    EXIT LOOP                   |              |
++------------------------------------------------+              |
          |                                                      |
          v                                                      |
-+--------------------+    Ch 12, 13                             |
-| Session Persist    |    - store assistant message             |
-|                    |    - update session title                |
++--------------------+  Ch 12, 13                               |
+| Session Persist    |  - store assistant message               |
+|                    |  - update session title                  |
 +--------+-----------+                                          |
          v                                                      |
-+--------------------+    Ch 26, 31-33                          |
-| Bus --> Client       |    - SSE events --> TUI/web/SDK           |
++--------------------+  Ch 26, 31-33                            |
+| Bus --> Client     |  - SSE events --> TUI/web/SDK            |
 +--------------------+                                          |
 ```
 
