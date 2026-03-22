@@ -15,10 +15,10 @@ subtitle: "How an AI Coding Agent Works"
 author: "Erich Champion"
 
 # Publisher (optional)
-publisher: ""
+publisher: "Erich Champion"
 
 # Publication date (optional, format: YYYY-MM-DD)
-# date: "2024-10-21"
+# date: "2025-10-21"
 
 # Book language (required, ISO 639-1 code)
 language: "en"
@@ -28,13 +28,13 @@ description: |
   A comprehensive review of OpenCode, an open-source AI coding assistant.
 
 # Subject/category (optional)
-# subjects:
-#   - "Artificial Intelligence"
-#   - "Software Development"
-#   - "Programming"
+subjects:
+  - "Artificial Intelligence"
+  - "Software Development"
+  - "Programming"
 
 # ISBN (optional)
-# isbn: "978-0-123456-78-9"
+#isbn: "979-8-9937022-0-9"
 
 # Copyright/rights statement (optional)
 rights: "© 2026 Erich Champion. All rights reserved."
@@ -44,11 +44,9 @@ rights: "© 2026 Erich Champion. All rights reserved."
 # series-number: "1"
 
 # Cover image (optional, path relative to this file)
-# cover-image: "cover.png"
+cover-image: "5x8.jpg"
 
 # Tags/keywords (optional)
-# tags:
-#   - "AI"
-#   - "Coding Assistant"
-#   - "TypeScript"
-#   - "DITA"
+tags:
+  - "AI"
+  - "Coding Assistant"

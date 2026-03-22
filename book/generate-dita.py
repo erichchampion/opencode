@@ -3,6 +3,7 @@
 import os
 import sys
 import shutil
+import yaml
 from pathlib import Path
 from bs4 import BeautifulSoup
 import markdown
@@ -15,6 +16,7 @@ MD_DIR = "md"
 DITA_DIR = "dita"
 HTML_DIR = "html"
 TOC_MD = "toc.md"
+METADATA_FILE = "metadata.yaml"
 LOG_FILE = "generate-dita.log"
 
 # ---------------------------------------------------------------------
@@ -25,6 +27,30 @@ def log(message: str):
     print(line)
     with open(LOG_FILE, "a", encoding="utf-8") as logf:
         logf.write(line + "\n")
+
+def load_metadata(metadata_file: str = METADATA_FILE) -> dict:
+    """Load metadata from YAML file."""
+    try:
+        with open(metadata_file, 'r', encoding='utf-8') as f:
+            metadata = yaml.safe_load(f)
+
+        # Validate required fields
+        if not metadata.get('title'):
+            log(f"⚠️  Warning: 'title' not found in {metadata_file}, using default")
+            metadata['title'] = "Documentation"
+
+        log(f"✅ Loaded metadata from {metadata_file}")
+        log(f"   Title: {metadata.get('title')}")
+        if metadata.get('author'):
+            log(f"   Author: {metadata.get('author')}")
+
+        return metadata
+    except FileNotFoundError:
+        log(f"⚠️  Warning: {metadata_file} not found, using defaults")
+        return {'title': 'Documentation', 'language': 'en'}
+    except yaml.YAMLError as e:
+        log(f"⚠️  Warning: Error parsing {metadata_file}: {e}")
+        return {'title': 'Documentation', 'language': 'en'}
 
 def normalize_path(path: str) -> str:
     """Normalize a file path for consistent comparison."""
@@ -75,39 +101,28 @@ def resolve_image_path(img_src: str, md_file_path: str) -> str:
         return img_src
 
 def escape_xml(text: str) -> str:
-    """Escape special XML characters and replace multi-byte UTF-8 characters.
-
-    Apache Xerces has a bug in UTF8Reader where multi-byte UTF-8 characters
-    landing on a 2048-byte buffer boundary cause an ArrayIndexOutOfBoundsException.
-    We replace common non-ASCII characters with ASCII equivalents to avoid this.
-    """
-    text = (text
+    """Escape special XML characters."""
+    return (text
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace('"', "&quot;")
             .replace("'", "&apos;"))
 
-    # Replace multi-byte UTF-8 characters that trigger Xerces buffer bug
-    text = (text
-            .replace("\u2014", "--")       # em-dash (—)
-            .replace("\u2013", "-")        # en-dash (–)
-            .replace("\u2192", "->")       # right arrow (→)
-            .replace("\u2190", "<-")       # left arrow (←)
-            .replace("\u2026", "...")       # ellipsis (…)
-            .replace("\u201c", '"')        # left double quote
-            .replace("\u201d", '"')        # right double quote
-            .replace("\u2018", "'")        # left single quote
-            .replace("\u2019", "'")        # right single quote
-            .replace("\U0001f9ea", "[Test]")  # 🧪
-            .replace("\U0001f4dd", "[Note]")  # 📝
-            .replace("\U0001f527", "[Tool]")  # 🔧
-            .replace("\U0001f50d", "[Search]"))  # 🔍
+def generate_anchor_slug(text: str) -> str:
+    """Generate an anchor slug from heading text (same as markdown auto-generates).
 
-    # Catch any remaining non-ASCII characters and replace with '?'
-    text = text.encode('ascii', errors='replace').decode('ascii')
-
-    return text
+    Example: "13.1 Extension Points Design" -> "131-extension-points-design"
+    """
+    import re
+    # Convert to lowercase
+    slug = text.lower()
+    # Replace spaces and special chars with hyphens
+    slug = re.sub(r'[^\w\s-]', '', slug)
+    slug = re.sub(r'[\s_]+', '-', slug)
+    # Remove leading/trailing hyphens
+    slug = slug.strip('-')
+    return slug
 
 def detect_language(code_text: str) -> str:
     """
@@ -242,6 +257,24 @@ def convert_element_content(element) -> str:
                     result.append(f'<xref href="{escape_xml(href)}" format="html" scope="external">{escape_xml(link_text)}</xref>')
                 else:
                     # Just text for unresolved internal links
+                    # Preserve surrounding whitespace when flattening links
+                    prev_sibling = child.previous_sibling
+                    next_sibling = child.next_sibling
+
+                    # Check if we need to add a space before
+                    if isinstance(prev_sibling, str):
+                        if prev_sibling and not prev_sibling[-1].isspace():
+                            link_text = " " + link_text
+                    elif prev_sibling is not None:  # It's an element
+                        link_text = " " + link_text
+
+                    # Check if we need to add a space after
+                    if isinstance(next_sibling, str):
+                        if next_sibling and not next_sibling[0].isspace():
+                            link_text = link_text + " "
+                    elif next_sibling is not None:  # It's an element
+                        link_text = link_text + " "
+
                     result.append(escape_xml(link_text))
         elif child.name == "code":
             result.append(f'<codeph>{escape_xml(child.get_text())}</codeph>')
@@ -249,6 +282,9 @@ def convert_element_content(element) -> str:
             result.append(f'<b>{escape_xml(child.get_text())}</b>')
         elif child.name == "em" or child.name == "i":
             result.append(f'<i>{escape_xml(child.get_text())}</i>')
+        elif child.name == "br":
+            # Line break - add a space and newline for better formatting in DITA
+            result.append(' ')
         elif child.name == "img":
             img_src = child.get("src", "")
             img_alt = child.get("alt", "")
@@ -339,7 +375,29 @@ def convert_list_item_content(li_element) -> list:
                 link_text = child.get_text(strip=True)
                 if href.startswith("http://") or href.startswith("https://"):
                     result.append(f'<xref href="{escape_xml(href)}" format="html" scope="external">{escape_xml(link_text)}</xref>')
+                elif href.startswith("#"):
+                    # Fragment-only anchor (internal page link) - keep as xref
+                    # Keep the # for DITA - it indicates a same-topic reference
+                    result.append(f'<xref href="{href}">{escape_xml(link_text)}</xref>')
                 else:
+                    # Preserve surrounding whitespace when flattening other links
+                    prev_sibling = child.previous_sibling
+                    next_sibling = child.next_sibling
+
+                    # Check if we need to add a space before
+                    if isinstance(prev_sibling, str):
+                        if prev_sibling and not prev_sibling[-1].isspace():
+                            link_text = " " + link_text
+                    elif prev_sibling is not None:  # It's an element
+                        link_text = " " + link_text
+
+                    # Check if we need to add a space after
+                    if isinstance(next_sibling, str):
+                        if next_sibling and not next_sibling[0].isspace():
+                            link_text = link_text + " "
+                    elif next_sibling is not None:  # It's an element
+                        link_text = link_text + " "
+
                     result.append(escape_xml(link_text))
 
     return result
@@ -423,6 +481,303 @@ def convert_table_to_dita(table_element) -> str:
     dita_table.append('    </table>')
     return "\n".join(dita_table)
 
+def strip_emojis(text: str) -> str:
+    """
+    Remove emojis from text for PDF compatibility.
+
+    Apache FOP (the PDF formatter) doesn't support emoji fonts properly,
+    rendering them as placeholder characters (#). This function removes
+    emojis to ensure clean PDF output.
+    """
+    import re
+
+    # Comprehensive emoji pattern covering most emoji ranges
+    # This includes:
+    # - Emoticons
+    # - Miscellaneous Symbols and Pictographs
+    # - Supplemental Symbols and Pictographs
+    # - Transport and Map Symbols
+    # - Enclosed characters
+    # - Various other symbol ranges
+    emoji_pattern = re.compile(
+        "["
+        "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        "\U0001F300-\U0001F5FF"  # symbols & pictographs
+        "\U0001F600-\U0001F64F"  # emoticons
+        "\U0001F680-\U0001F6FF"  # transport & map symbols
+        "\U0001F700-\U0001F77F"  # alchemical symbols
+        "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
+        "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+        "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+        "\U0001FA00-\U0001FA6F"  # Chess Symbols
+        "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+        "\U00002702-\U000027B0"  # Dingbats
+        "\u2600-\u26FF"          # Misc symbols (NOT including box-drawing U+2500-U+257F)
+        "\u2700-\u27BF"          # Dingbats
+        "\U0001f926-\U0001f937"  # Face palm, shrug, etc.
+        "\u200d"                 # Zero width joiner
+        "\ufe0f"                 # Variation selector
+        "\u2640-\u2642"          # Gender symbols
+        "\u23cf"                 # Eject symbol
+        "\u23e9"                 # Fast forward
+        "\u231a"                 # Watch
+        "\u3030"                 # Wavy dash
+        "\u20e3"                 # Combining Enclosing Keycap
+        "]+",
+        flags=re.UNICODE
+    )
+
+    # Remove emojis
+    text = emoji_pattern.sub('', text)
+
+    # Clean up spacing issues after emoji removal
+    # Important: Skip cleanup inside code blocks to preserve indentation
+    lines = text.split('\n')
+    cleaned_lines = []
+    in_code_block = False
+
+    for line in lines:
+        # Check for code fence markers
+        stripped = line.strip()
+        if stripped.startswith('```') or stripped.startswith('~~~'):
+            in_code_block = not in_code_block
+            cleaned_lines.append(line)
+            continue
+
+        # Skip cleanup for lines inside code blocks
+        if in_code_block:
+            cleaned_lines.append(line)
+            continue
+        # Check if this is a list item
+        stripped = line.lstrip()
+        is_list = stripped.startswith(('- ', '* ', '+ ')) or (len(stripped) > 2 and stripped[0].isdigit() and stripped[1:3] in ['. ', ') '])
+
+        if is_list:
+            # For list items, preserve the structure but clean up after the marker
+            # Extract indent, marker, and content
+            indent = line[:len(line) - len(stripped)]
+            if stripped.startswith(('- ', '* ', '+ ')):
+                marker = stripped[:2]
+                content = stripped[2:]
+            else:
+                # Numbered list
+                marker_end = stripped.find('. ')
+                if marker_end == -1:
+                    marker_end = stripped.find(') ')
+                marker = stripped[:marker_end + 2]
+                content = stripped[marker_end + 2:]
+
+            # Clean up the content part
+            # Fix multiple spaces
+            content = re.sub(r'  +', ' ', content)
+            # Fix spaces INSIDE bold/italic spans (created by emoji removal)
+            # Use lookahead/lookbehind to ensure we're matching actual span boundaries, not crossing spans
+            content = re.sub(r'(?<![^\s])\*\*\s+(\S+(?:\s+\S+)?)\s*\*\*(?![^\s])', r'**\1**', content)  # Bold with leading space
+            content = re.sub(r'(?<![^\s])\*\*\s*(\S+(?:\s+\S+)?)\s+\*\*(?![^\s])', r'**\1**', content)  # Bold with trailing space
+            # Match complete italic spans with proper boundaries
+            content = re.sub(r'(?<![^\s\*])\*\s+(\S+(?:\s+\S+)?)\s*\*(?![^\s\*])', r'*\1*', content)  # Italic with leading space
+            content = re.sub(r'(?<![^\s\*])\*\s*(\S+(?:\s+\S+)?)\s+\*(?![^\s\*])', r'*\1*', content)  # Italic with trailing space
+            # Match underscores with proper boundaries
+            content = re.sub(r'(?<![^\s])__\s+(\S+(?:\s+\S+)?)\s*__(?![^\s])', r'__\1__', content)
+            content = re.sub(r'(?<![^\s])__\s*(\S+(?:\s+\S+)?)\s+__(?![^\s])', r'__\1__', content)
+
+            cleaned_lines.append(indent + marker + content)
+        else:
+            # For non-list lines, clean up normally
+            # Fix multiple spaces
+            line = re.sub(r'  +', ' ', line)
+            # Fix spaces INSIDE bold/italic spans (created by emoji removal)
+            # Use lookahead/lookbehind to ensure we're matching actual span boundaries, not crossing spans
+            # Opening ** must not be preceded by non-whitespace (not a closing marker)
+            # Closing ** must not be followed by non-whitespace (not an opening marker)
+            line = re.sub(r'(?<![^\s])\*\*\s+(\S+(?:\s+\S+)?)\s*\*\*(?![^\s])', r'**\1**', line)  # Bold with leading space
+            line = re.sub(r'(?<![^\s])\*\*\s*(\S+(?:\s+\S+)?)\s+\*\*(?![^\s])', r'**\1**', line)  # Bold with trailing space
+            # Match complete italic spans with proper boundaries
+            line = re.sub(r'(?<![^\s\*])\*\s+(\S+(?:\s+\S+)?)\s*\*(?![^\s\*])', r'*\1*', line)  # Italic with leading space
+            line = re.sub(r'(?<![^\s\*])\*\s*(\S+(?:\s+\S+)?)\s+\*(?![^\s\*])', r'*\1*', line)  # Italic with trailing space
+            # Match underscores with proper boundaries
+            line = re.sub(r'(?<![^\s])\__\s+(\S+(?:\s+\S+)?)\s*__(?![^\s])', r'__\1__', line)
+            line = re.sub(r'(?<![^\s])__\s*(\S+(?:\s+\S+)?)\s+__(?![^\s])', r'__\1__', line)
+            cleaned_lines.append(line)
+
+    return '\n'.join(cleaned_lines)
+
+def fix_list_spacing(md_text: str) -> str:
+    """
+    Ensure blank lines before lists for proper markdown parsing.
+
+    Markdown parsers require a blank line before list items to recognize them
+    as block-level lists. This function adds blank lines where needed.
+    """
+    lines = md_text.split('\n')
+    result = []
+
+    for i, line in enumerate(lines):
+        # Check if current line is a list item
+        stripped = line.strip()
+        is_list_item = stripped.startswith(('- ', '* ', '+ ')) or (len(stripped) > 2 and stripped[0].isdigit() and stripped[1:3] in ['. ', ') '])
+
+        if is_list_item and i > 0:
+            prev_line = lines[i-1].strip()
+            # Check if previous line is NOT a list item and NOT blank
+            prev_is_list = prev_line.startswith(('- ', '* ', '+ ')) or (len(prev_line) > 2 and prev_line[0].isdigit() and prev_line[1:3] in ['. ', ') '])
+
+            if prev_line and not prev_is_list:
+                # Need blank line before this list
+                result.append('')
+
+        result.append(line)
+
+    return '\n'.join(result)
+
+def preprocess_markdown_tables(md_text: str) -> str:
+    """
+    Preprocess markdown to handle tables with multi-row headers.
+
+    Detects tables with multiple header rows before the separator and converts
+    them to HTML tables that will be properly parsed and converted to DITA.
+    """
+    lines = md_text.split('\n')
+    result = []
+    i = 0
+
+    while i < len(lines):
+        # Check if we're at the start of a table
+        if i < len(lines) and lines[i].strip().startswith('|') and lines[i].strip().endswith('|'):
+            # Extract the complete table
+            table_lines = []
+            j = i
+
+            while j < len(lines):
+                line = lines[j].strip()
+                if line.startswith('|') and line.endswith('|'):
+                    table_lines.append(lines[j])
+                    j += 1
+                elif line == '' and j + 1 < len(lines) and lines[j + 1].strip().startswith('|'):
+                    # Empty line within table - skip it but continue
+                    j += 1
+                else:
+                    # End of table
+                    break
+
+            # Check if this table has a multi-row header
+            separator_index = -1
+            for k, line in enumerate(table_lines):
+                if _is_separator_row(line):
+                    separator_index = k
+                    break
+
+            # If we found a separator and there are multiple header rows
+            if separator_index > 1:
+                log(f"🔍 Found table with {separator_index} header rows, normalizing to standard format")
+                normalized_table = _normalize_multirow_header_table(table_lines, separator_index)
+                result.append(normalized_table)
+            else:
+                # Standard table - keep as-is
+                result.extend(table_lines)
+
+            i = j
+        else:
+            result.append(lines[i])
+            i += 1
+
+    return '\n'.join(result)
+
+def _is_separator_row(line: str) -> bool:
+    """Check if a line is a table separator row (contains dashes between pipes)."""
+    stripped = line.strip()
+    if not stripped.startswith('|') or not stripped.endswith('|'):
+        return False
+
+    # Remove leading and trailing pipes
+    content = stripped[1:-1]
+    parts = content.split('|')
+
+    # Check if all parts are separator cells (dashes, colons, spaces)
+    has_separator = False
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        # Should only contain -, :, and spaces
+        if not all(c in '-: ' for c in part):
+            return False
+        # Should have at least one dash
+        if '-' in part:
+            has_separator = True
+
+    return has_separator
+
+def _parse_table_row(row: str) -> list:
+    """Parse a table row into individual cells."""
+    # Remove leading and trailing pipes and whitespace
+    content = row.strip()
+    if content.startswith('|'):
+        content = content[1:]
+    if content.endswith('|'):
+        content = content[:-1]
+
+    # Split by pipe and return cells
+    cells = [cell.strip() for cell in content.split('|')]
+    return cells
+
+def _normalize_multirow_header_table(table_lines: list, separator_index: int) -> str:
+    """
+    Normalize a markdown table with multi-row headers to HTML format.
+
+    This function converts tables with multiple header rows into HTML tables
+    that preserve the multi-row header structure using rowspan or multiple <tr> rows.
+
+    Args:
+        table_lines: All lines of the table
+        separator_index: Index of the separator row
+
+    Returns:
+        HTML table string
+    """
+    header_rows = table_lines[:separator_index]
+    data_rows = table_lines[separator_index + 1:]  # Skip separator
+
+    # Parse all rows
+    parsed_headers = [_parse_table_row(row) for row in header_rows]
+    parsed_data = [_parse_table_row(row) for row in data_rows]
+
+    # Build HTML table
+    html_parts = ['<table>']
+    html_parts.append('  <thead>')
+
+    # Add all header rows as separate <tr> elements
+    for header_row in parsed_headers:
+        html_parts.append('    <tr>')
+        for cell in header_row:
+            # Preserve bold formatting if present
+            cell_html = cell.replace('**', '')  # Remove markdown bold for now
+            if cell.startswith('**') and cell.endswith('**'):
+                html_parts.append(f'      <th><b>{cell_html}</b></th>')
+            else:
+                html_parts.append(f'      <th>{cell_html}</th>')
+        html_parts.append('    </tr>')
+
+    html_parts.append('  </thead>')
+    html_parts.append('  <tbody>')
+
+    # Add data rows
+    for data_row in parsed_data:
+        html_parts.append('    <tr>')
+        for cell in data_row:
+            # Preserve bold formatting if present
+            if cell.startswith('**') and cell.endswith('**'):
+                cell_html = cell[2:-2]  # Remove ** markers
+                html_parts.append(f'      <td><b>{cell_html}</b></td>')
+            else:
+                html_parts.append(f'      <td>{cell}</td>')
+        html_parts.append('    </tr>')
+
+    html_parts.append('  </tbody>')
+    html_parts.append('</table>')
+
+    return '\n'.join(html_parts)
+
 def md_to_dita_topic(md_path: str, topic_id: str, title: str, file_to_topic: dict = None) -> str:
     """Convert a Markdown file to a DITA topic."""
     if not os.path.exists(md_path):
@@ -439,6 +794,15 @@ def md_to_dita_topic(md_path: str, topic_id: str, title: str, file_to_topic: dic
 
     with open(md_path, "r", encoding="utf-8") as f:
         md_content = f.read()
+
+    # Strip emojis for PDF compatibility (Apache FOP doesn't support emoji fonts)
+    md_content = strip_emojis(md_content)
+
+    # Preprocess markdown to fix list spacing (must come before other preprocessing)
+    md_content = fix_list_spacing(md_content)
+
+    # Preprocess markdown to handle tables with multi-row headers
+    md_content = preprocess_markdown_tables(md_content)
 
     # Convert Markdown to HTML first
     html = markdown.markdown(md_content, extensions=[
@@ -551,12 +915,23 @@ def md_to_dita_topic(md_path: str, topic_id: str, title: str, file_to_topic: dic
             # Skip h1 since we use title
             continue
         elif element.name in ["h2", "h3", "h4", "h5", "h6"]:
-            # Convert headings to sections (simplified)
+            # Convert headings to sections with anchor IDs
             text = element.get_text(strip=True)
+            # Generate anchor slug for cross-references
+            anchor_id = generate_anchor_slug(text)
+            # Add anchor element before section for cross-references
+            # Using <ph> (phrase) element with id - DITA-OT will convert this to <span id="..."> in HTML
+            dita_parts.append(f'    <p><ph id="{anchor_id}"/></p>')
             dita_parts.append(f'    <section><title>{escape_xml(text)}</title></section>')
         elif element.name == "p":
             # Handle paragraphs with potential links
             dita_parts.append('    <p>' + convert_element_content(element) + '</p>')
+        elif element.name == "blockquote":
+            # Handle blockquotes (convert to note/lq element)
+            # Extract all paragraphs from blockquote
+            for p in element.find_all("p", recursive=False):
+                content = convert_element_content(p)
+                dita_parts.append(f'    <lq>{content}</lq>')
         elif element.name == "ul":
             dita_parts.append('    <ul>')
             for li in element.find_all("li", recursive=False):
@@ -752,6 +1127,85 @@ def convert_headings_to_lists(md_text: str) -> str:
 
     return '\n'.join(output)
 
+def create_preface_topic(dita_dir: Path, metadata: dict) -> str:
+    """
+    Create a preface topic with copyright information from metadata.
+    Returns the filename of the created preface topic, or None if no metadata.
+    """
+    if not metadata:
+        return None
+
+    # Check if we have any relevant metadata to display
+    has_copyright_info = any([
+        metadata.get('author'),
+        metadata.get('publisher'),
+        metadata.get('date'),
+        metadata.get('rights'),
+        metadata.get('isbn')
+    ])
+
+    if not has_copyright_info:
+        return None
+
+    log("📄 Creating preface topic with copyright information...")
+
+    preface_parts = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">',
+        '<topic id="preface_copyright">',
+        '  <title>Copyright Information</title>',
+        '  <body>'
+    ]
+
+    # Copyright notice
+    if metadata.get('rights'):
+        preface_parts.append('    <p>')
+        preface_parts.append(f'      {escape_xml(metadata["rights"])}')
+        preface_parts.append('    </p>')
+
+    # Author
+    if metadata.get('author'):
+        authors = metadata['author']
+        if isinstance(authors, list):
+            preface_parts.append('    <p>')
+            preface_parts.append('      <b>Author(s):</b> ')
+            preface_parts.append(escape_xml(', '.join(authors)))
+            preface_parts.append('    </p>')
+        else:
+            preface_parts.append('    <p>')
+            preface_parts.append(f'      <b>Author:</b> {escape_xml(authors)}')
+            preface_parts.append('    </p>')
+
+    # Publisher
+    if metadata.get('publisher'):
+        preface_parts.append('    <p>')
+        preface_parts.append(f'      <b>Publisher:</b> {escape_xml(metadata["publisher"])}')
+        preface_parts.append('    </p>')
+
+    # Publication date
+    if metadata.get('date'):
+        preface_parts.append('    <p>')
+        preface_parts.append(f'      <b>Publication Date:</b> {escape_xml(metadata["date"])}')
+        preface_parts.append('    </p>')
+
+    # ISBN
+    if metadata.get('isbn'):
+        preface_parts.append('    <p>')
+        preface_parts.append(f'      <b>ISBN:</b> {escape_xml(metadata["isbn"])}')
+        preface_parts.append('    </p>')
+
+    preface_parts.append('  </body>')
+    preface_parts.append('</topic>')
+
+    # Write preface topic
+    preface_filename = "preface_copyright.dita"
+    preface_path = dita_dir / preface_filename
+    with open(preface_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(preface_parts))
+
+    log(f"✅ Generated preface topic: {preface_filename}")
+    return preface_filename
+
 def parse_markdown_toc(md_file: str) -> tuple:
     """Convert toc.md to HTML and parse with BeautifulSoup.
 
@@ -775,15 +1229,9 @@ def parse_markdown_toc(md_file: str) -> tuple:
             log(f"📖 Extracted title from TOC: {extracted_title}")
             break
 
-    # Detect TOC format
-    has_headings = any(line.strip().startswith('#') for line in toc_md_text.split('\n'))
-    has_indented_lists = any(line.startswith('  ') and (line.strip().startswith('[') or line.strip()[0].isdigit() if line.strip() else False)
-                             for line in toc_md_text.split('\n'))
-
-    if has_headings and not has_indented_lists:
-        # Heading-based format - convert to nested list format
-        log("📋 Detected heading-based TOC format, converting to nested lists...")
-        toc_md_text = convert_headings_to_lists(toc_md_text)
+    # DON'T convert heading-based TOCs to lists - preserve original structure
+    # The user wants the TOC.md structure to be preserved exactly
+    # We'll extract links from headings, paragraphs, and lists directly
 
     # Preprocess markdown to fix nested list parsing issues
     # The markdown library has trouble with nested lists that have blank lines
@@ -810,11 +1258,13 @@ def parse_markdown_toc(md_file: str) -> tuple:
     soup = BeautifulSoup(toc_html, "html.parser")
     return soup, extracted_title
 
-def build_dita_map(toc_soup: BeautifulSoup, dita_dir: Path, base_path: str = "", title: str = None) -> tuple:
-    """Build DITA map from TOC and generate topic files. Returns (ditamap_content, title)."""
+def build_dita_map(toc_soup: BeautifulSoup, dita_dir: Path, base_path: str = "", title: str = None, metadata: dict = None) -> tuple:
+    """Build DITA bookmap from TOC and generate topic files. Returns (bookmap_content, title)."""
 
-    # Use provided title, or extract from first link in TOC, or use default
+    # Use provided title, or extract from metadata, or extract from first link in TOC, or use default
     doc_title = title
+    if not doc_title and metadata:
+        doc_title = metadata.get('title')
     if not doc_title:
         # Try to extract from first link
         top_ol = toc_soup.find(["ol", "ul"])
@@ -836,51 +1286,91 @@ def build_dita_map(toc_soup: BeautifulSoup, dita_dir: Path, base_path: str = "",
     file_to_topic = {}
     files_to_process = []
 
+    def collect_links_from_element(elem, elem_type="element"):
+        """Collect all markdown links from an element (list item or paragraph)."""
+        # Get ALL links from this element (paragraphs can have multiple links)
+        link_tags = elem.find_all("a", href=True, recursive=False)
+        if not link_tags:
+            return
+
+        log(f"  🔍 Processing {elem_type}: found {len(link_tags)} link(s)")
+
+        for link_tag in link_tags:
+            title = link_tag.get_text(strip=True)
+            href = link_tag["href"]
+
+            log(f"    → Link: '{title}' -> {href}")
+
+            # Skip URLs
+            if href.startswith("http://") or href.startswith("https://"):
+                log(f"      ⏭️  Skipping external URL")
+                continue
+
+            # Normalize path
+            if href.startswith("/"):
+                href = "." + href
+            elif not href.startswith("./"):
+                href = "./" + href
+
+            href = os.path.join(base_path, href)
+            if href.endswith(".html"):
+                href = href[:-5] + ".md"
+
+            # Build mapping
+            normalized = normalize_path(href)
+            if normalized not in file_to_topic:
+                topic_counter[0] += 1
+                topic_id = f"topic_{topic_counter[0]}"
+                topic_filename = f"{topic_id}.dita"
+
+                file_to_topic[normalized] = {
+                    "id": topic_id,
+                    "filename": topic_filename,
+                    "title": title
+                }
+                files_to_process.append((href, topic_id, title, topic_filename))
+                log(f"      ✅ Added as {topic_id}")
+            else:
+                log(f"      ⏭️  Already in mapping")
+
     def collect_files(ol, level=1):
+        """Collect files from list structures."""
         for li in ol.find_all("li", recursive=False):
-            link_tag = li.find("a", href=True)
+            collect_links_from_element(li, elem_type=f"list item (level {level})")
             nested_ol = li.find(["ol", "ul"], recursive=False)
-
-            if link_tag:
-                title = link_tag.get_text(strip=True)
-                href = link_tag["href"]
-
-                # Skip URLs
-                if href.startswith("http://") or href.startswith("https://"):
-                    if nested_ol:
-                        collect_files(nested_ol, level + 1)
-                    continue
-
-                # Normalize path
-                if href.startswith("/"):
-                    href = "." + href
-                elif not href.startswith("./"):
-                    href = "./" + href
-
-                href = os.path.join(base_path, href)
-                if href.endswith(".html"):
-                    href = href[:-5] + ".md"
-
-                # Build mapping
-                normalized = normalize_path(href)
-                if normalized not in file_to_topic:
-                    topic_counter[0] += 1
-                    topic_id = f"topic_{topic_counter[0]}"
-                    topic_filename = f"{topic_id}.dita"
-
-                    file_to_topic[normalized] = {
-                        "id": topic_id,
-                        "filename": topic_filename,
-                        "title": title
-                    }
-                    files_to_process.append((href, topic_id, title, topic_filename))
-
             if nested_ol:
                 collect_files(nested_ol, level + 1)
 
-    top_ol = toc_soup.find(["ol", "ul"])
-    if top_ol:
-        collect_files(top_ol)
+    # Collect from document in depth-first order (h2 followed by its list)
+    log("📑 Collecting links from document in depth-first order...")
+
+    headings = toc_soup.find_all("h2")
+    log(f"  Found {len(headings)} h2 heading(s)")
+
+    for i, h2 in enumerate(headings):
+        # Collect links from the h2 (Part or README)
+        collect_links_from_element(h2, elem_type=f"h2 heading {i+1}")
+
+        # Find the next list (if any) before the next h2
+        next_elem = h2.find_next_sibling()
+        while next_elem:
+            # Skip text nodes and NavigableStrings
+            if not hasattr(next_elem, 'name'):
+                next_elem = next_elem.find_next_sibling()
+                continue
+
+            # If we hit another h2, stop looking (no list for this h2)
+            if next_elem.name == "h2":
+                break
+
+            # If we find a list, collect it and stop
+            if next_elem.name in ["ol", "ul"]:
+                log(f"  📋 Processing list after h2 heading {i+1}")
+                collect_files(next_elem)
+                break
+
+            # Skip hr and other elements, keep looking
+            next_elem = next_elem.find_next_sibling()
 
     log(f"📋 Found {len(file_to_topic)} files to convert to DITA")
 
@@ -896,67 +1386,142 @@ def build_dita_map(toc_soup: BeautifulSoup, dita_dir: Path, base_path: str = "",
 
         log(f"✅ Generated DITA topic: {topic_filename} for {href}")
 
-    # Third pass: build DITA map
-    ditamap_parts = [
+    # Save file-to-topic mapping for EPUB generation
+    # This allows EPUB to use original markdown filenames for HTML files
+    mapping_file = dita_dir / "file_to_topic.json"
+    import json
+    # Convert mapping to save original filenames
+    simplified_mapping = {}
+    for file_path, topic_info in file_to_topic.items():
+        # Extract just the filename without path for cleaner HTML names
+        # e.g., "./md/chapter-01-introduction.md" -> "chapter-01-introduction"
+        base_name = Path(file_path).stem
+        simplified_mapping[topic_info['filename']] = {
+            'original_name': base_name,
+            'topic_id': topic_info['id']
+        }
+    with open(mapping_file, 'w', encoding='utf-8') as f:
+        json.dump(simplified_mapping, f, indent=2)
+    log(f"💾 Saved file-to-topic mapping: {mapping_file.name}")
+
+    # Third pass: build DITA bookmap with metadata
+    bookmap_parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
-        '<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">',
-        '<map>',
-        f'  <title>{escape_xml(doc_title)}</title>'
+        '<!DOCTYPE bookmap PUBLIC "-//OASIS//DTD DITA BookMap//EN" "bookmap.dtd">',
+        '<bookmap>',
+        f'  <booktitle>',
+        f'    <mainbooktitle>{escape_xml(doc_title)}</mainbooktitle>'
     ]
 
-    def build_map_structure(ol, level=1, indent="  "):
-        for li in ol.find_all("li", recursive=False):
-            link_tag = li.find("a", href=True, recursive=False)  # Only check direct children
-            nested_ol = li.find(["ol", "ul"], recursive=False)
+    # Add subtitle if present
+    if metadata and metadata.get('subtitle'):
+        bookmap_parts.append(f'    <booktitlealts>')
+        bookmap_parts.append(f'      <booktitle>{escape_xml(metadata["subtitle"])}</booktitle>')
+        bookmap_parts.append(f'    </booktitlealts>')
 
-            if link_tag:
-                title = link_tag.get_text(strip=True)
-                href = link_tag["href"]
+    bookmap_parts.append(f'  </booktitle>')
 
-                # Skip URLs
-                if href.startswith("http://") or href.startswith("https://"):
-                    log(f"⏭️  Skipping URL link in map: {title} ({href})")
-                    if nested_ol:
-                        build_map_structure(nested_ol, level + 1, indent)
-                    continue
+    # Add metadata section
+    if metadata:
+        bookmap_parts.append('  <bookmeta>')
 
-                # Normalize path
-                if href.startswith("/"):
-                    href = "." + href
-                elif not href.startswith("./"):
-                    href = "./" + href
+        # Add author information
+        if metadata.get('author'):
+            authors = metadata['author']
+            if isinstance(authors, str):
+                authors = [authors]
+            for author in authors:
+                bookmap_parts.append('    <author>')
+                bookmap_parts.append(f'      <personname>{escape_xml(author)}</personname>')
+                bookmap_parts.append('    </author>')
 
-                href = os.path.join(base_path, href)
-                if href.endswith(".html"):
-                    href = href[:-5] + ".md"
+        # Add publisher
+        if metadata.get('publisher'):
+            bookmap_parts.append('    <publisher>')
+            bookmap_parts.append(f'      <organizationname>{escape_xml(metadata["publisher"])}</organizationname>')
+            bookmap_parts.append('    </publisher>')
 
-                normalized = normalize_path(href)
-                if normalized in file_to_topic:
-                    topic_info = file_to_topic[normalized]
-                    if nested_ol:
-                        ditamap_parts.append(f'{indent}<topicref href="{topic_info["filename"]}">')
-                        build_map_structure(nested_ol, level + 1, indent + "  ")
-                        ditamap_parts.append(f'{indent}</topicref>')
-                    else:
-                        ditamap_parts.append(f'{indent}<topicref href="{topic_info["filename"]}"/>')
+        # Add copyright/rights
+        if metadata.get('rights'):
+            bookmap_parts.append('    <bookrights>')
+            bookmap_parts.append(f'      <copyrfirst>')
+            bookmap_parts.append(f'        <year>{datetime.now().year}</year>')
+            bookmap_parts.append(f'      </copyrfirst>')
+            bookmap_parts.append(f'      <bookowner>')
+            if metadata.get('author'):
+                author = metadata['author'] if isinstance(metadata['author'], str) else metadata['author'][0]
+                bookmap_parts.append(f'        <person>{escape_xml(author)}</person>')
+            bookmap_parts.append(f'      </bookowner>')
+            bookmap_parts.append('    </bookrights>')
+
+        bookmap_parts.append('  </bookmeta>')
+
+    log(f"✅ Generated bookmap with metadata")
+
+    # Create preface topic with copyright information
+    preface_filename = create_preface_topic(dita_dir, metadata)
+
+    # Add frontmatter section with preface if it was created
+    if preface_filename:
+        bookmap_parts.append('  <frontmatter>')
+        bookmap_parts.append(f'    <topicref href="{preface_filename}"/>')
+        bookmap_parts.append('  </frontmatter>')
+        log(f"✅ Added preface to bookmap")
+    else:
+        # Empty frontmatter if no preface
+        bookmap_parts.append('  <frontmatter/>')
+
+    # Build hierarchical bookmap structure
+    # Parts become <chapter> elements with nested <topicref> for their chapters
+    log(f"📝 Building hierarchical bookmap with {len(files_to_process)} topics...")
+
+    current_chapter_open = False
+
+    for href, topic_id, title, topic_filename in files_to_process:
+        # Check if this is a Part heading
+        if title.startswith("Part "):
+            # Close previous chapter if open
+            if current_chapter_open:
+                bookmap_parts.append('  </chapter>')
+                current_chapter_open = False
+
+            # Start new chapter with the Part as its topic
+            bookmap_parts.append(f'  <chapter href="{topic_filename}">')
+            current_chapter_open = True
+            log(f"  📖 Started chapter: {title}")
+
+        # Check if this is README (first non-Part item)
+        elif title == "README":
+            # README is a standalone chapter
+            bookmap_parts.append(f'  <chapter href="{topic_filename}"/>')
+            log(f"  📄 Added standalone chapter: {title}")
+
+        # Check if this is an individual appendix (e.g., "Appendix A: ...")
+        elif title.startswith("Appendix ") and ":" in title:
+            # Close previous chapter if open (end Part V)
+            if current_chapter_open:
+                bookmap_parts.append('  </chapter>')
+                current_chapter_open = False
+
+            # Add appendix as standalone chapter
+            bookmap_parts.append(f'  <chapter href="{topic_filename}"/>')
+            log(f"  📚 Added appendix chapter: {title}")
+
+        # Everything else is a nested topicref
+        else:
+            if current_chapter_open:
+                bookmap_parts.append(f'    <topicref href="{topic_filename}"/>')
+                log(f"    ✓ Added nested topic: {title}")
             else:
-                # Parent item without link - create topichead
-                title_text = li.find(text=True, recursive=False)
-                if title_text:
-                    title_text = title_text.strip()
-                    if title_text:
-                        ditamap_parts.append(f'{indent}<topichead navtitle="{escape_xml(title_text)}">')
-                        if nested_ol:
-                            build_map_structure(nested_ol, level + 1, indent + "  ")
-                        ditamap_parts.append(f'{indent}</topichead>')
-                elif nested_ol:
-                    build_map_structure(nested_ol, level + 1, indent)
+                # Fallback: add as standalone chapter if no part is open
+                bookmap_parts.append(f'  <chapter href="{topic_filename}"/>')
+                log(f"  ⚠️  Added standalone chapter (no open part): {title}")
 
-    if top_ol:
-        build_map_structure(top_ol)
-
-    ditamap_parts.append('</map>')
-    return "\n".join(ditamap_parts), doc_title
+    # Close final chapter if still open
+    if current_chapter_open:
+        bookmap_parts.append('  </chapter>')
+    bookmap_parts.append('</bookmap>')
+    return "\n".join(bookmap_parts), doc_title
 
 # ---------------------------------------------------------------------
 def main():
@@ -964,10 +1529,10 @@ def main():
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Convert Markdown files to DITA topics and generate ditamap',
-        epilog='If no title is provided, the script will try to extract it from the first heading in the TOC'
+        description='Convert Markdown files to DITA topics and generate bookmap',
+        epilog='Metadata is loaded from metadata.yaml. Use --title to override the title.'
     )
-    parser.add_argument('--title', type=str, help='Title for the DITA map')
+    parser.add_argument('--title', type=str, help='Title for the DITA bookmap (overrides metadata.yaml)')
     args = parser.parse_args()
 
     # Clear old log
@@ -977,6 +1542,9 @@ def main():
     log("🚀 Starting generate-dita.py")
     log(f"📂 Reading Markdown files from: {MD_DIR}/")
     log(f"📂 DITA files will be saved to: {DITA_DIR}/")
+
+    # Load metadata
+    metadata = load_metadata()
 
     # Check if MD directory exists
     md_dir_path = Path(MD_DIR)
@@ -993,7 +1561,7 @@ def main():
     # Parse TOC and extract title
     toc_soup, extracted_title = parse_markdown_toc(str(toc_file))
 
-    # Determine final title (CLI arg > extracted from TOC > first link > default)
+    # Determine final title (CLI arg > metadata > extracted from TOC > first link > default)
     final_title = args.title or extracted_title
     if args.title:
         log(f"📖 Using title from command line: {args.title}")
@@ -1010,14 +1578,14 @@ def main():
     for ditamap_file in dita_dir.glob("*.ditamap"):
         ditamap_file.unlink()
 
-    # Build DITA map and generate topics
-    ditamap_content, doc_title = build_dita_map(toc_soup, dita_dir, base_path=str(md_dir_path), title=final_title)
+    # Build DITA bookmap and generate topics
+    bookmap_content, doc_title = build_dita_map(toc_soup, dita_dir, base_path=str(md_dir_path), title=final_title, metadata=metadata)
 
-    # Write DITA map
-    ditamap_path = dita_dir / "userguide.ditamap"
-    with open(ditamap_path, "w", encoding="utf-8") as f:
-        f.write(ditamap_content)
-    log(f"✅ Generated DITA map: {ditamap_path}")
+    # Write DITA bookmap
+    bookmap_path = dita_dir / "userguide.ditamap"
+    with open(bookmap_path, "w", encoding="utf-8") as f:
+        f.write(bookmap_content)
+    log(f"✅ Generated DITA bookmap: {bookmap_path}")
 
     log(f"🎉 Done! Generated DITA files in {DITA_DIR}/")
 

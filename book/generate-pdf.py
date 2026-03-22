@@ -4,12 +4,13 @@ import os
 import sys
 import shutil
 import subprocess
+import yaml
 from pathlib import Path
 from datetime import datetime
 
 # --- CONFIGURATION ---
 DITA_DIR = "dita"
-OUTPUT_PDF = "Building AI Coding Assistants.pdf"
+METADATA_FILE = "metadata.yaml"
 DITA_COMMAND = "dita"
 LOG_FILE = "generate-pdf.log"
 
@@ -21,6 +22,30 @@ def log(message: str):
     print(line)
     with open(LOG_FILE, "a", encoding="utf-8") as logf:
         logf.write(line + "\n")
+
+def load_metadata(metadata_file: str = METADATA_FILE) -> dict:
+    """Load metadata from YAML file."""
+    try:
+        with open(metadata_file, 'r', encoding='utf-8') as f:
+            metadata = yaml.safe_load(f)
+
+        # Validate required fields
+        if not metadata.get('title'):
+            log(f"⚠️  Warning: 'title' not found in {metadata_file}, using default")
+            metadata['title'] = "Building AI Coding Assistants"
+
+        log(f"✅ Loaded metadata from {metadata_file}")
+        log(f"   Title: {metadata.get('title')}")
+        if metadata.get('author'):
+            log(f"   Author: {metadata.get('author')}")
+
+        return metadata
+    except FileNotFoundError:
+        log(f"⚠️  Warning: {metadata_file} not found, using defaults")
+        return {'title': 'Building AI Coding Assistants', 'language': 'en'}
+    except yaml.YAMLError as e:
+        log(f"⚠️  Warning: Error parsing {metadata_file}: {e}")
+        return {'title': 'Building AI Coding Assistants', 'language': 'en'}
 
 def create_pdf_customization(dita_dir: Path):
     """Create a custom PDF configuration for better TOC styling."""
@@ -159,7 +184,7 @@ def create_pdf_customization(dita_dir: Path):
   <!-- Code block syntax highlighting -->
   <xsl:attribute-set name="codeblock">
     <xsl:attribute name="font-family">monospace</xsl:attribute>
-    <xsl:attribute name="font-size">9pt</xsl:attribute>
+    <xsl:attribute name="font-size">8pt</xsl:attribute>
     <xsl:attribute name="background-color">#f5f5f5</xsl:attribute>
     <xsl:attribute name="padding">6pt</xsl:attribute>
     <xsl:attribute name="border">0.5pt solid #cccccc</xsl:attribute>
@@ -200,8 +225,8 @@ def create_pdf_customization(dita_dir: Path):
     log(f"✅ Created PDF customization in {custom_dir}")
     return custom_dir
 
-def run_dita_ot(ditamap_path: Path, output_dir: Path, output_pdf: str, dita_dir: Path):
-    """Run DITA-OT to generate PDF."""
+def run_dita_ot(ditamap_path: Path, output_dir: Path, output_pdf: str, dita_dir: Path, metadata: dict = None):
+    """Run DITA-OT to generate PDF with metadata."""
     log(f"🔨 Running DITA-OT to generate PDF...")
 
     # Check if DITA-OT command is available
@@ -281,6 +306,70 @@ def run_dita_ot(ditamap_path: Path, output_dir: Path, output_pdf: str, dita_dir:
         log(e.stderr)
         sys.exit(1)
 
+def combine_with_cover_page(output_pdf: str):
+    """
+    Post-processing step to combine 8.5x11.pdf with the generated user guide PDF.
+    Uses ghostscript to redistill and combine PDFs with 8.5x11.pdf as the first page.
+    """
+    output_path = Path(output_pdf)
+    output_dir = output_path.parent if output_path.parent != Path('.') else Path.cwd()
+    cover_pdf = output_dir / "8.5x11.pdf"
+
+    # Check if cover page exists
+    if not cover_pdf.exists():
+        log(f"ℹ️  No 8.5x11.pdf found in {output_dir}, skipping cover page combination")
+        return
+
+    log(f"📄 Found {cover_pdf}, combining with {output_pdf}")
+
+    # Check if ghostscript is available
+    gs_command = None
+    for cmd in ["gs", "gswin64c", "gswin32c"]:  # Try different gs command names
+        try:
+            subprocess.run([cmd, "--version"], capture_output=True, check=True)
+            gs_command = cmd
+            break
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            continue
+
+    if not gs_command:
+        log(f"⚠️  Ghostscript (gs) not found. Cannot combine PDFs.")
+        log("   Install ghostscript: brew install ghostscript")
+        return
+
+    # Create temporary output file
+    temp_output = output_path.parent / f"{output_path.stem}_combined.pdf"
+
+    # Use ghostscript to combine and redistill PDFs
+    cmd = [
+        gs_command,
+        "-dBATCH",
+        "-dNOPAUSE",
+        "-q",
+        "-sDEVICE=pdfwrite",
+        "-dPDFSETTINGS=/prepress",  # High quality output
+        f"-sOutputFile={temp_output}",
+        str(cover_pdf),
+        str(output_path)
+    ]
+
+    log(f"   Command: {' '.join(cmd)}")
+
+    try:
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+        # Replace original PDF with combined version
+        shutil.move(str(temp_output), str(output_path))
+        log(f"✅ Successfully combined {cover_pdf.name} with {output_pdf}")
+
+    except subprocess.CalledProcessError as e:
+        log(f"❌ Error combining PDFs with ghostscript:")
+        log(e.stderr)
+        # Clean up temp file if it exists
+        if temp_output.exists():
+            temp_output.unlink()
+        log(f"⚠️  Continuing with original PDF (not combined)")
+
 # ---------------------------------------------------------------------
 def main():
     # Clear old log
@@ -289,6 +378,13 @@ def main():
 
     log("🚀 Starting generate-pdf.py")
     log(f"📂 Reading DITA files from: {DITA_DIR}/")
+
+    # Load metadata
+    metadata = load_metadata()
+
+    # Determine output PDF filename from metadata
+    output_pdf = f"{metadata.get('title', 'Building AI Coding Assistants')}.pdf"
+    log(f"📄 Output PDF: {output_pdf}")
 
     # Check if DITA directory exists
     dita_dir = Path(DITA_DIR)
@@ -308,7 +404,10 @@ def main():
         shutil.rmtree(out_dir)
 
     # Run DITA-OT to generate PDF
-    run_dita_ot(ditamap_path, out_dir, OUTPUT_PDF, dita_dir)
+    run_dita_ot(ditamap_path, out_dir, output_pdf, dita_dir, metadata)
+
+    # Post-processing: Combine with cover page if it exists
+    combine_with_cover_page(output_pdf)
 
     # Clean up temporary output directory (optional)
     # Uncomment the next lines if you want to remove the temp directory
@@ -316,7 +415,7 @@ def main():
     #     shutil.rmtree(out_dir)
     #     log(f"🧹 Cleaned up temporary directory: {out_dir}")
 
-    log(f"🎉 Done! PDF saved to {OUTPUT_PDF}")
+    log(f"🎉 Done! PDF saved to {output_pdf}")
 
 if __name__ == "__main__":
     main()
