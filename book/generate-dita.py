@@ -570,34 +570,13 @@ def strip_emojis(text: str) -> str:
             # Clean up the content part
             # Fix multiple spaces
             content = re.sub(r'  +', ' ', content)
-            # Fix spaces INSIDE bold/italic spans (created by emoji removal)
-            # Use lookahead/lookbehind to ensure we're matching actual span boundaries, not crossing spans
-            content = re.sub(r'(?<![^\s])\*\*\s+(\S+(?:\s+\S+)?)\s*\*\*(?![^\s])', r'**\1**', content)  # Bold with leading space
-            content = re.sub(r'(?<![^\s])\*\*\s*(\S+(?:\s+\S+)?)\s+\*\*(?![^\s])', r'**\1**', content)  # Bold with trailing space
-            # Match complete italic spans with proper boundaries
-            content = re.sub(r'(?<![^\s\*])\*\s+(\S+(?:\s+\S+)?)\s*\*(?![^\s\*])', r'*\1*', content)  # Italic with leading space
-            content = re.sub(r'(?<![^\s\*])\*\s*(\S+(?:\s+\S+)?)\s+\*(?![^\s\*])', r'*\1*', content)  # Italic with trailing space
-            # Match underscores with proper boundaries
-            content = re.sub(r'(?<![^\s])__\s+(\S+(?:\s+\S+)?)\s*__(?![^\s])', r'__\1__', content)
-            content = re.sub(r'(?<![^\s])__\s*(\S+(?:\s+\S+)?)\s+__(?![^\s])', r'__\1__', content)
+
 
             cleaned_lines.append(indent + marker + content)
         else:
             # For non-list lines, clean up normally
             # Fix multiple spaces
             line = re.sub(r'  +', ' ', line)
-            # Fix spaces INSIDE bold/italic spans (created by emoji removal)
-            # Use lookahead/lookbehind to ensure we're matching actual span boundaries, not crossing spans
-            # Opening ** must not be preceded by non-whitespace (not a closing marker)
-            # Closing ** must not be followed by non-whitespace (not an opening marker)
-            line = re.sub(r'(?<![^\s])\*\*\s+(\S+(?:\s+\S+)?)\s*\*\*(?![^\s])', r'**\1**', line)  # Bold with leading space
-            line = re.sub(r'(?<![^\s])\*\*\s*(\S+(?:\s+\S+)?)\s+\*\*(?![^\s])', r'**\1**', line)  # Bold with trailing space
-            # Match complete italic spans with proper boundaries
-            line = re.sub(r'(?<![^\s\*])\*\s+(\S+(?:\s+\S+)?)\s*\*(?![^\s\*])', r'*\1*', line)  # Italic with leading space
-            line = re.sub(r'(?<![^\s\*])\*\s*(\S+(?:\s+\S+)?)\s+\*(?![^\s\*])', r'*\1*', line)  # Italic with trailing space
-            # Match underscores with proper boundaries
-            line = re.sub(r'(?<![^\s])\__\s+(\S+(?:\s+\S+)?)\s*__(?![^\s])', r'__\1__', line)
-            line = re.sub(r'(?<![^\s])__\s*(\S+(?:\s+\S+)?)\s+__(?![^\s])', r'__\1__', line)
             cleaned_lines.append(line)
 
     return '\n'.join(cleaned_lines)
