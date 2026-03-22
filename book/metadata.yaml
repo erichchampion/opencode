@@ -18,7 +18,7 @@ author: "Erich Champion"
 publisher: "Erich Champion"
 
 # Publication date (optional, format: YYYY-MM-DD)
-# date: "2025-10-21"
+date: "2025-03-22"
 
 # Book language (required, ISO 639-1 code)
 language: "en"
@@ -34,7 +34,7 @@ subjects:
   - "Programming"
 
 # ISBN (optional)
-#isbn: "979-8-9937022-0-9"
+isbn: "979-8-9937022-3-0"
 
 # Copyright/rights statement (optional)
 rights: "© 2026 Erich Champion. All rights reserved."
