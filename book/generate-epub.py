@@ -1364,7 +1364,7 @@ def convert_to_epub(metadata: dict, toc_file: Path, chapter_files: list, output_
         "--insert-blank-line",  # Improve readability
         "--page-breaks-before", "/",  # No automatic page breaks
         # Add CSS to preserve TOC classes (prevents Calibre from stripping them)
-        "--extra-css", "h1.part-title, h1.chapter-title, h1.appendix-title { display: block; }",
+        "--extra-css", "h1.part-title, h1.chapter-title, h1.appendix-title { display: block; } pre.codeblock, pre.codeblock code { font-family: monospace; white-space: pre-wrap; font-size: 0.85em; } code.ph.codeph { font-family: monospace; font-size: 0.85em; }",
         # Generate EPUB TOC from our hierarchical structure
         # Use contains() to match classes since h1 tags may have multiple space-separated classes
         "--level1-toc", "//h:h1[contains(@class, 'part-title') or contains(@class, 'appendix-title')]",  # Parts and Appendices
