@@ -16,11 +16,17 @@ Events are defined with string names and Zod schemas:
 
 ```typescript
 export const Event = {
-  Created: BusEvent.define("session.created", z.object({ info: Session.Info })),
-  Updated: BusEvent.define("session.updated", z.object({ info: Session.Info })),
-  Deleted: BusEvent.define("session.deleted", z.object({ info: Session.Info })),
-  Diff:    BusEvent.define("session.diff",    z.object({ sessionID, diff: FileDiff.array() })),
-  Error:   BusEvent.define("session.error",   z.object({ sessionID, error: z.any() })),
+  Created: BusEvent.define(
+      "session.created", z.object({ info: Session.Info })),
+  Updated: BusEvent.define(
+      "session.updated", z.object({ info: Session.Info })),
+  Deleted: BusEvent.define(
+      "session.deleted", z.object({ info: Session.Info })),
+  Diff:    BusEvent.define(
+      "session.diff",
+      z.object({ sessionID, diff: FileDiff.array() })),
+  Error:   BusEvent.define(
+      "session.error", z.object({ sessionID, error: z.any() })),
 }
 ```
 
@@ -49,7 +55,8 @@ export async function publish<Definition extends BusEvent.Definition>(
     }
   }
   // 2. Forward to GlobalBus for cross-instance delivery (SSE, other instances)
-  GlobalBus.emit("event", { directory: Instance.directory, payload })
+  GlobalBus.emit(
+      "event", { directory: Instance.directory, payload })
   return Promise.all(pending)
 }
 ```
@@ -74,12 +81,14 @@ When an instance is disposed, the instance bus publishes `InstanceDisposed` to i
 ## 26.5 Subscribing and Unsubscribing
 
 ```typescript
-// Type-safe subscription -- callback receives { type, properties } with full typing
+// Type-safe subscription -- callback receives
+// { type, properties } with full typing
 const unsub = Bus.subscribe(Session.Event.Created, (event) => {
   console.log(`New session: ${event.properties.info.title}`)
 })
 
-// One-shot subscription -- automatically unsubscribes when callback returns "done"
+// One-shot subscription -- automatically unsubscribes
+// when callback returns "done"
 Bus.once(Permission.Event.Replied, (event) => {
   if (event.properties.requestID === myRequest) return "done"
 })

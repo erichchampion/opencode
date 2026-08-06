@@ -25,17 +25,28 @@ StreamInput --> resolve language model
 
 ```typescript
 export type StreamInput = {
-  user: MessageV2.User         // the user message triggering this call
-  sessionID: string            // context identifier
-  model: Provider.Model        // resolved model metadata
-  agent: Agent.Info            // active agent config
-  permission?: PermissionNext.Ruleset  // session-level permission overrides
-  system: string[]             // system prompt segments
-  abort: AbortSignal           // cancellation signal
-  messages: ModelMessage[]     // full conversation history
-  small?: boolean              // use small/cheap model settings
-  tools: Record<string, Tool>  // available tools
-  retries?: number             // max retry count (default: 0)
+  // the user message triggering this call
+  user: MessageV2.User
+  // context identifier
+  sessionID: string
+  // resolved model metadata
+  model: Provider.Model
+  // active agent config
+  agent: Agent.Info
+  // session-level permission overrides
+  permission?: PermissionNext.Ruleset
+  // system prompt segments
+  system: string[]
+  // cancellation signal
+  abort: AbortSignal
+  // full conversation history
+  messages: ModelMessage[]
+  // use small/cheap model settings
+  small?: boolean
+  // available tools
+  tools: Record<string, Tool>
+  // max retry count (default: 0)
+  retries?: number
   toolChoice?: "auto" | "required" | "none"
 }
 ```
@@ -53,10 +64,14 @@ const base = input.small
   ? ProviderTransform.smallOptions(input.model)
   : ProviderTransform.options({ model, sessionID, providerOptions })
 const options = pipe(
-  base,                      // provider defaults
-  mergeDeep(input.model.options),    // model-specific overrides
-  mergeDeep(input.agent.options),    // agent-specific overrides
-  mergeDeep(variant),                // variant (reasoning effort) overrides
+  // provider defaults
+  base,
+  // model-specific overrides
+  mergeDeep(input.model.options),
+  // agent-specific overrides
+  mergeDeep(input.agent.options),
+  // variant (reasoning effort) overrides
+  mergeDeep(variant),
 )
 ```
 
@@ -74,7 +89,9 @@ The system prompt is assembled here, combining the provider identity, user's cus
 
 ```typescript
 system.push([
-  ...(input.agent.prompt ? [input.agent.prompt] : SystemPrompt.provider(input.model)),
+  ...(input.agent.prompt
+    ? [input.agent.prompt]
+    : SystemPrompt.provider(input.model)),
   ...input.system,
   ...(input.user.system ? [input.user.system] : []),
 ].filter(Boolean).join("\n"))
@@ -94,7 +111,8 @@ For OpenAI OAuth users, the system prompt goes into the `instructions` field ins
 async function resolveTools(input) {
   const disabled = PermissionNext.disabled(
     Object.keys(input.tools),
-    PermissionNext.merge(input.agent.permission, input.permission ?? []),
+    PermissionNext.merge(
+        input.agent.permission, input.permission ?? []),
   )
   for (const tool of Object.keys(input.tools)) {
     if (input.user.tools?.[tool] === false || disabled.has(tool))
@@ -119,7 +137,8 @@ LiteLLM proxies (and some Anthropic gateways) validate that if the message histo
 const isLiteLLMProxy = provider.options?.["litellmProxy"] === true ||
   input.model.providerID.toLowerCase().includes("litellm")
 
-if (isLiteLLMProxy && Object.keys(tools).length === 0 && hasToolCalls(input.messages)) {
+if (isLiteLLMProxy && Object.keys(tools).length === 0
+    && hasToolCalls(input.messages)) {
   tools["_noop"] = tool({
     description: "Placeholder for LiteLLM proxy compatibility",
     inputSchema: jsonSchema({ type: "object", properties: {} }),
@@ -146,7 +165,9 @@ async experimental_repairToolCall(failed) {
   // Truly unknown tool -- route to the "invalid" tool
   return {
     ...failed.toolCall,
-    input: JSON.stringify({ tool: failed.toolCall.toolName, error: failed.error.message }),
+    input: JSON.stringify({
+      tool: failed.toolCall.toolName,
+      error: failed.error.message }),
     toolName: "invalid",
   }
 }
@@ -166,7 +187,8 @@ model: wrapLanguageModel({
   middleware: [{
     async transformParams(args) {
       if (args.type === "stream") {
-        args.params.prompt = ProviderTransform.message(args.params.prompt, input.model, options)
+        args.params.prompt = ProviderTransform.message(
+            args.params.prompt, input.model, options)
       }
       return args.params
     },
@@ -196,7 +218,8 @@ return streamText({
   maxOutputTokens,
   maxRetries: input.retries ?? 0,
   abortSignal: input.abort,
-  providerOptions: ProviderTransform.providerOptions(input.model, options),
+  providerOptions: ProviderTransform.providerOptions(
+      input.model, options),
   headers: { ...opencodeHeaders, ...modelHeaders, ...pluginHeaders },
   experimental_telemetry: { isEnabled: cfg.experimental?.openTelemetry },
 })

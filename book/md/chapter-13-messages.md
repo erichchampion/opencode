@@ -39,16 +39,23 @@ User messages carry metadata about what the user requested:
 export const User = Base.extend({
   role: z.literal("user"),
   time: z.object({ created: z.number() }),
-  format: Format.optional(),        // text or JSON schema output format
-  agent: z.string(),                // which agent should handle this
-  model: z.object({                 // which model to use
+  // text or JSON schema output format
+  format: Format.optional(),
+  // which agent should handle this
+  agent: z.string(),
+  // which model to use
+  model: z.object({
     providerID: ProviderID.zod,
     modelID: ModelID.zod,
   }),
-  variant: z.string().optional(),   // reasoning effort: default, high, max
-  system: z.string().optional(),    // custom system prompt override
-  tools: z.record(z.string(), z.boolean()).optional(),  // tool enable/disable
-  summary: z.object({               // populated after the response
+  // reasoning effort: default, high, max
+  variant: z.string().optional(),
+  // custom system prompt override
+  system: z.string().optional(),
+  // tool enable/disable
+  tools: z.record(z.string(), z.boolean()).optional(),
+  // populated after the response
+  summary: z.object({
     title: z.string().optional(),
     body: z.string().optional(),
     diffs: Snapshot.FileDiff.array(),
@@ -73,11 +80,15 @@ export const Assistant = Base.extend({
     created: z.number(),
     completed: z.number().optional(),
   }),
-  parentID: MessageID.zod,       // links to the user message that triggered this
-  modelID: ModelID.zod,          // model that actually responded
+  // links to the user message that triggered this
+  parentID: MessageID.zod,
+  // model that actually responded
+  modelID: ModelID.zod,
   providerID: ProviderID.zod,
-  agent: z.string(),             // agent that produced this
-  cost: z.number(),              // total cost in dollars
+  // agent that produced this
+  agent: z.string(),
+  // total cost in dollars
+  cost: z.number(),
   tokens: z.object({
     total: z.number().optional(),
     input: z.number(),
@@ -111,18 +122,30 @@ Parts use a discriminated union on the `type` field. Here is the complete list w
 
 ```typescript
 export const Part = z.discriminatedUnion("type", [
-  TextPart,         // Model text output
-  ReasoningPart,    // Chain-of-thought (extended thinking)
-  ToolPart,         // Tool invocation with state lifecycle
-  FilePart,         // Attached files (images, documents, resources)
-  StepStartPart,    // Marks the beginning of an agentic step
-  StepFinishPart,   // Marks the end with cost/token data
-  SnapshotPart,     // Git snapshot ID for revert tracking
-  PatchPart,        // File changes (unified diff hash + file list)
-  CompactionPart,   // Context summarization marker
-  SubtaskPart,      // Sub-agent task invocation
-  AgentPart,        // Agent reference from @agent syntax
-  RetryPart,        // Record of a retry attempt after error
+  // Model text output
+  TextPart,
+  // Chain-of-thought (extended thinking)
+  ReasoningPart,
+  // Tool invocation with state lifecycle
+  ToolPart,
+  // Attached files (images, documents, resources)
+  FilePart,
+  // Marks the beginning of an agentic step
+  StepStartPart,
+  // Marks the end with cost/token data
+  StepFinishPart,
+  // Git snapshot ID for revert tracking
+  SnapshotPart,
+  // File changes (unified diff hash + file list)
+  PatchPart,
+  // Context summarization marker
+  CompactionPart,
+  // Sub-agent task invocation
+  SubtaskPart,
+  // Agent reference from @agent syntax
+  AgentPart,
+  // Record of a retry attempt after error
+  RetryPart,
 ])
 ```
 
@@ -137,10 +160,15 @@ pending --> running --> completed
 
 ```typescript
 export const ToolState = z.discriminatedUnion("status", [
-  ToolStatePending,    // { status: "pending", input, raw }
-  ToolStateRunning,    // { status: "running", input, title, time: { start } }
-  ToolStateCompleted,  // { status: "completed", input, output, title, metadata, time: { start, end, compacted? } }
-  ToolStateError,      // { status: "error", input, error, time: { start, end } }
+  // { status: "pending", input, raw }
+  ToolStatePending,
+  // { status: "running", input, title, time: { start } }
+  ToolStateRunning,
+  // { status: "completed", input, output, title, metadata,
+  //   time: { start, end, compacted? } }
+  ToolStateCompleted,
+  // { status: "error", input, error, time: { start, end } }
+  ToolStateError,
 ])
 ```
 
@@ -184,8 +212,10 @@ export const updatePartDelta = fn(z.object({
   sessionID: SessionID.zod,
   messageID: MessageID.zod,
   partID: PartID.zod,
-  field: z.string(),   // "text" for TextPart, "text" for ReasoningPart
-  delta: z.string(),   // the new characters
+  // "text" for TextPart, "text" for ReasoningPart
+  field: z.string(),
+  // the new characters
+  delta: z.string(),
 }), async (input) => {
   Bus.publish(MessageV2.Event.PartDelta, input)
 })
@@ -249,7 +279,8 @@ The cursor encodes both `id` and `time`, enabling efficient keyset pagination wi
 `filterCompacted()` trims the message history to only the messages after the most recent compaction:
 
 ```typescript
-export async function filterCompacted(stream: AsyncIterable<MessageV2.WithParts>) {
+export async function filterCompacted(
+  stream: AsyncIterable<MessageV2.WithParts>) {
   const result = [] as MessageV2.WithParts[]
   const completed = new Set<string>()
   for await (const msg of stream) {
@@ -257,7 +288,8 @@ export async function filterCompacted(stream: AsyncIterable<MessageV2.WithParts>
     if (msg.info.role === "user" && completed.has(msg.info.id) &&
         msg.parts.some((part) => part.type === "compaction"))
       break
-    if (msg.info.role === "assistant" && msg.info.summary && msg.info.finish && !msg.info.error)
+    if (msg.info.role === "assistant" && msg.info.summary
+        && msg.info.finish && !msg.info.error)
       completed.add(msg.info.parentID)
   }
   result.reverse()

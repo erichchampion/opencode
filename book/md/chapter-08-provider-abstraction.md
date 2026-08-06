@@ -180,7 +180,8 @@ If the provider needs special initialization -- custom auth, region detection, n
 const CUSTOM_LOADERS = {
   "newprovider": async (options) => {
     // Custom initialization logic
-    return createNewProvider({ apiKey: options.apiKey, baseURL: options.baseUrl })
+    return createNewProvider({
+      apiKey: options.apiKey, baseURL: options.baseUrl })
   },
 }
 ```

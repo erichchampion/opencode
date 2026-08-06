@@ -11,9 +11,11 @@ Every prompt enters through `SessionPrompt.prompt()` in `session/prompt.ts`. Thi
 ```typescript
 export const prompt = fn(PromptInput, async (input) => {
   const session = await Session.get(input.sessionID)
-  await SessionRevert.cleanup(session)   // clear any pending revert state
+  // clear any pending revert state
+  await SessionRevert.cleanup(session)
   const message = await createUserMessage(input)
-  await Session.touch(input.sessionID)    // update timestamp
+  // update timestamp
+  await Session.touch(input.sessionID)
 
   // handle backwards-compatible tool enable/disable via permissions
   const permissions: PermissionNext.Ruleset = []
@@ -26,7 +28,8 @@ export const prompt = fn(PromptInput, async (input) => {
   }
   if (permissions.length > 0) {
     session.permission = permissions
-    await Session.setPermission({ sessionID: session.id, permission: permissions })
+    await Session.setPermission({
+      sessionID: session.id, permission: permissions })
   }
 
   if (input.noReply === true) return message
@@ -48,21 +51,32 @@ The `PromptInput` schema defines everything a prompt can carry:
 ```typescript
 export const PromptInput = z.object({
   sessionID: SessionID.zod,
-  messageID: MessageID.zod.optional(),   // for retrying a specific message
+  // for retrying a specific message
+  messageID: MessageID.zod.optional(),
   model: z.object({
     providerID: ProviderID.zod,
     modelID: ModelID.zod,
-  }).optional(),                          // override model for this prompt
-  agent: z.string().optional(),           // override agent (e.g., "plan")
-  noReply: z.boolean().optional(),        // store message but don't run loop
-  format: MessageV2.Format.optional(),    // text or JSON schema output
-  system: z.string().optional(),          // custom system prompt addition
-  variant: z.string().optional(),         // reasoning effort level
+  // override model for this prompt
+  }).optional(),
+  // override agent (e.g., "plan")
+  agent: z.string().optional(),
+  // store message but don't run loop
+  noReply: z.boolean().optional(),
+  // text or JSON schema output
+  format: MessageV2.Format.optional(),
+  // custom system prompt addition
+  system: z.string().optional(),
+  // reasoning effort level
+  variant: z.string().optional(),
   parts: z.array(z.discriminatedUnion("type", [
-    TextPartInput,     // user's text
-    FilePartInput,     // attached files (images, documents)
-    AgentPartInput,    // @agent mentions
-    SubtaskPartInput,  // sub-task requests
+    // user's text
+    TextPartInput,
+    // attached files (images, documents)
+    FilePartInput,
+    // @agent mentions
+    AgentPartInput,
+    // sub-task requests
+    SubtaskPartInput,
   ])),
 })
 ```
@@ -99,12 +113,14 @@ Setting `noReply: true` stores the user message but doesn't invoke the agentic l
 The prompt-time model resolution follows a priority chain:
 
 ```
-User's explicit model  -->  Agent's default model  -->  Session's last model  -->  Config default
+User's explicit model  -->  Agent's default model
+    -->  Session's last model  -->  Config default
 ```
 
 Agent resolution works similarly:
 ```
-@agent mention in parts  -->  input.agent field  -->  Session's last agent  -->  "coder" (default)
+@agent mention in parts  -->  input.agent field
+    -->  Session's last agent  -->  "coder" (default)
 ```
 
 The `@agent` mention syntax (e.g., `@plan can you review this?`) is parsed from `AgentPart` entries in the parts array. This lets users switch agents mid-conversation without changing settings.

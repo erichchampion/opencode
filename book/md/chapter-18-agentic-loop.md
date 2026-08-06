@@ -18,7 +18,9 @@ loop() {
     5. Resolve model, agent, system prompt, tools
     6. Create assistant message and processor
     7. Call processor.process(streamInput)
-    8. Based on result: "stop" -> EXIT, "compact" -> schedule compaction, "continue" -> loop again
+    8. Based on result: "stop" -> EXIT,
+       "compact" -> schedule compaction,
+       "continue" -> loop again
   }
 }
 ```
@@ -152,7 +154,8 @@ Before each step, the loop resolves which agent is active. The agent determines 
 
 ```typescript
 const agent = await Agent.get(resolvedAgentName)
-const permission = PermissionNext.merge(agent.permission, sessionPermission, approved)
+const permission = PermissionNext.merge(
+    agent.permission, sessionPermission, approved)
 ```
 
 ### Built-In Agents

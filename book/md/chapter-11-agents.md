@@ -52,7 +52,8 @@ Permissions are built by merging layers:
 3. User configuration overrides
 
 ```typescript
-permission: PermissionNext.merge(defaults, agentOverrides, userOverrides)
+permission: PermissionNext.merge(
+    defaults, agentOverrides, userOverrides)
 ```
 
 ### 11.4 Custom Agents

@@ -173,7 +173,8 @@ OpenCode supports several environment variable patterns:
 Environment variables take precedence over config file values. The merge order is:
 
 ```
-defaults --> global config --> project config --> environment variables --> CLI flags
+defaults --> global config --> project config
+    --> environment variables --> CLI flags
 ```
 
 ### 6.7 TUI-Specific Configuration
