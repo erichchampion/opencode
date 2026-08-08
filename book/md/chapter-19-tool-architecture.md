@@ -28,8 +28,14 @@ export function define<Parameters, Result>(
 
         // 3. Truncate output (unless tool handles it)
         if (result.metadata.truncated !== undefined) return result
-        const truncated = await Truncate.output(result.output, {}, initCtx?.agent)
-        return { ...result, output: truncated.content, metadata: { ...result.metadata, truncated: truncated.truncated } }
+        const truncated = await Truncate.output(
+            result.output, {}, initCtx?.agent)
+        return {
+          ...result,
+          output: truncated.content,
+          metadata: {
+            ...result.metadata,
+            truncated: truncated.truncated } }
       }
       return toolInfo
     },
@@ -50,13 +56,13 @@ Every tool execution receives a `Tool.Context`:
 
 ```typescript
 export type Context = {
-  sessionID: SessionID      // which session invoked this
-  messageID: MessageID      // which assistant message
-  agent: string             // which agent
-  abort: AbortSignal        // cancellation
-  callID?: string           // unique call identifier
-  messages: WithParts[]     // full conversation history
-  metadata(input): void     // update TUI display (title, status)
+  sessionID: SessionID  // which session invoked this
+  messageID: MessageID  // which assistant message
+  agent: string         // which agent
+  abort: AbortSignal    // cancellation
+  callID?: string       // unique call identifier
+  messages: WithParts[] // full conversation history
+  metadata(input): void // update TUI display (title, status)
   ask(input): Promise<void> // request user permission
 }
 ```
@@ -126,7 +132,9 @@ export const InvalidTool = Tool.define("invalid", {
   async execute(args) {
     return {
       title: "Invalid tool",
-      output: `Tool "${args.tool}" not found. Error: ${args.error}. Available tools: ${availableTools}`,
+      output: `Tool "${args.tool}" not found. `
+        + `Error: ${args.error}. `
+        + `Available tools: ${availableTools}`,
       metadata: {},
     }
   },

@@ -18,18 +18,28 @@ The `Session.Info` type is a Zod-validated object with these fields:
 
 ```typescript
 export const Info = z.object({
-  id: SessionID.zod,          // descending ULID (newest first)
-  slug: z.string(),            // human-readable URL-safe identifier
-  projectID: ProjectID.zod,    // links session to a project
+  // descending ULID (newest first)
+  id: SessionID.zod,
+  // human-readable URL-safe identifier
+  slug: z.string(),
+  // links session to a project
+  projectID: ProjectID.zod,
   workspaceID: WorkspaceID.zod.optional(),
-  directory: z.string(),       // project working directory
-  parentID: SessionID.zod.optional(),  // for child sessions (sub-tasks)
-  title: z.string(),           // auto-generated or user-specified
-  version: z.string(),         // OpenCode version that created it
+  // project working directory
+  directory: z.string(),
+  // for child sessions (sub-tasks)
+  parentID: SessionID.zod.optional(),
+  // auto-generated or user-specified
+  title: z.string(),
+  // OpenCode version that created it
+  version: z.string(),
   summary: z.object({
-    additions: z.number(),     // lines added across all files
-    deletions: z.number(),     // lines removed
-    files: z.number(),         // number of files changed
+    // lines added across all files
+    additions: z.number(),
+    // lines removed
+    deletions: z.number(),
+    // number of files changed
+    files: z.number(),
     diffs: Snapshot.FileDiff.array().optional(),
   }).optional(),
   share: z.object({ url: z.string() }).optional(),
@@ -134,7 +144,8 @@ export const fork = fn(z.object({
   messageID: MessageID.zod.optional(),
 }), async (input) => {
   const original = await get(input.sessionID)
-  const title = getForkedTitle(original.title)  // "My chat" -> "My chat (fork #1)"
+  // "My chat" -> "My chat (fork #1)"
+  const title = getForkedTitle(original.title)
   const session = await createNext({ ... })
   const msgs = await messages({ sessionID: input.sessionID })
 
@@ -144,7 +155,9 @@ export const fork = fn(z.object({
     // Clone message and all its parts into the new session
     await updateMessage({ ...msg.info, sessionID: session.id, id: newID })
     for (const part of msg.parts) {
-      await updatePart({ ...part, id: PartID.ascending(), messageID: newID, sessionID: session.id })
+      await updatePart({
+        ...part, id: PartID.ascending(),
+        messageID: newID, sessionID: session.id })
     }
   }
   return session
@@ -195,7 +208,10 @@ export const share = fn(SessionID.zod, async (id) => {
   const share = await ShareNext.create(id)
   // Store the share URL in the session row
   Database.use((db) => {
-    db.update(SessionTable).set({ share_url: share.url }).where(eq(SessionTable.id, id)).returning().get()
+    db.update(SessionTable)
+      .set({ share_url: share.url })
+      .where(eq(SessionTable.id, id))
+      .returning().get()
   })
   return share
 })

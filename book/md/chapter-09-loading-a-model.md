@@ -94,7 +94,8 @@ Provider.getModel("anthropic", "claude-sonnet-4-20250514")
               id: "claude-sonnet-4-20250514",
               providerID: "anthropic",
               name: "Claude Sonnet 4",
-              capabilities: { reasoning: true, attachments: true, toolCalling: true },
+              capabilities: {
+                reasoning: true, attachments: true, toolCalling: true },
               cost: { input: 3.0, output: 15.0 },  // per million tokens
               limit: { context: 200000, output: 64000 }
             }

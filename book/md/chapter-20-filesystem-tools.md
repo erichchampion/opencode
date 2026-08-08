@@ -33,7 +33,9 @@ Key behaviors:
 Creates new files:
 
 ```
-write({ filePath: "posts/2024-03-15-getting-started.md", content: "---\ntitle: Getting Started\n..." })
+write({
+  filePath: "posts/2024-03-15-getting-started.md",
+  content: "---\ntitle: Getting Started\n..." })
 ```
 
 Key behaviors:
@@ -51,7 +53,10 @@ The most complex filesystem tool. Uses search-and-replace:
 edit({
   filePath: "app/page.tsx",
   old: "export default function Home() {\n  return (\n    <main>...",
-  new: "import { getAllPosts } from '@/lib/posts'\n\nexport default function Home() {\n  const posts = getAllPosts()\n  return (\n    <main>..."
+  new: "import { getAllPosts } from '@/lib/posts'\n\n"
+     + "export default function Home() {\n"
+     + "  const posts = getAllPosts()\n"
+     + "  return (\n    <main>..."
 })
 ```
 
@@ -99,7 +104,9 @@ Directory listing with configurable depth:
 An alternative to edit/write for models that produce unified diffs:
 
 ```
-apply_patch({ patch: "--- a/foo.ts\n+++ b/foo.ts\n@@ -1,3 +1,4 @@\n+import { bar } from './bar'\n ..." })
+apply_patch({ patch:
+    "--- a/foo.ts\n+++ b/foo.ts\n"
+  + "@@ -1,3 +1,4 @@\n+import { bar } from './bar'\n ..." })
 ```
 
 This tool is **model-specific** -- only enabled for GPT-5+ and certain OpenAI models. These models were trained to produce unified diff format reliably, making patch-based editing more efficient than multiple search-and-replace calls.
@@ -154,9 +161,12 @@ When a path falls outside the project, `assertExternalDirectory()` requires expl
 
 ```typescript
 export async function assertExternalDirectory(ctx, target) {
-  if (Instance.containsPath(target)) return  // inside project -- no permission needed
+  // inside project -- no permission needed
+  if (Instance.containsPath(target)) return
   const glob = path.join(parentDir, "*")
-  await ctx.ask({ permission: "external_directory", patterns: [glob], always: [glob] })
+  await ctx.ask({
+    permission: "external_directory",
+    patterns: [glob], always: [glob] })
 }
 ```
 

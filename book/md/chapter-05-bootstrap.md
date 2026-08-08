@@ -117,10 +117,16 @@ The test fixture system itself demonstrates the `Instance.provide()` pattern:
 **Key pattern in `fixture.ts`:**
 ```typescript
 export async function tmpdir(options?) {
-  const dirpath = path.join(os.tmpdir(), "opencode-test-" + Math.random().toString(36).slice(2))
+  const dirpath = path.join(
+      os.tmpdir(),
+      "opencode-test-" + Math.random().toString(36).slice(2))
   await fs.mkdir(dirpath, { recursive: true })
   if (options?.git) { await $`git init`.cwd(dirpath).quiet() }
-  if (options?.config) { await Bun.write(path.join(dirpath, "opencode.json"), JSON.stringify(options.config)) }
+  if (options?.config) {
+    await Bun.write(
+      path.join(dirpath, "opencode.json"),
+      JSON.stringify(options.config))
+  }
   return {
     [Symbol.asyncDispose]: async () => { /* cleanup */ },
     path: realpath,
@@ -157,7 +163,7 @@ Instance.provide({ directory, init, fn })
     |                   +-- Return { directory, worktree, project }
     |
     +-- 3. context.provide(ctx, fn) -- run user callback inside ALS
-    |       +-- fn() has access to Instance.directory, .worktree, .project, .state()
+    |       +-- fn() sees Instance.directory, .worktree, .project, .state()
     |
     +-- (on exit or explicit call)
         Instance.dispose()
@@ -180,23 +186,30 @@ export const SessionTable = sqliteTable("session", {
   id: text().$type<SessionID>().primaryKey(),
   project_id: text().$type<ProjectID>()
     .references(() => ProjectTable.id, { onDelete: "cascade" }),
-  parent_id: text().$type<SessionID>(),      // for sub-tasks
+  // for sub-tasks
+  parent_id: text().$type<SessionID>(),
   title: text().notNull(),
   version: text().notNull(),
-  share_url: text(),                          // if shared via opencode.ai
-  summary_diffs: text({ mode: "json" })       // file change summary
+  // if shared via opencode.ai
+  share_url: text(),
+  // file change summary
+  summary_diffs: text({ mode: "json" })
     .$type<Snapshot.FileDiff[]>(),
-  permission: text({ mode: "json" })          // session-level permission overrides
+  // session-level permission overrides
+  permission: text({ mode: "json" })
     .$type<PermissionNext.Ruleset>(),
-  revert: text({ mode: "json" }),             // snapshot data for undo
-  ...Timestamps,                              // time_created, time_updated
+  // snapshot data for undo
+  revert: text({ mode: "json" }),
+  // time_created, time_updated
+  ...Timestamps,
 })
 
 export const MessageTable = sqliteTable("message", {
   id: text().$type<MessageID>().primaryKey(),
   session_id: text().$type<SessionID>()
     .references(() => SessionTable.id, { onDelete: "cascade" }),
-  data: text({ mode: "json" }).$type<InfoData>(),  // role, metadata
+  // role, metadata
+  data: text({ mode: "json" }).$type<InfoData>(),
   ...Timestamps,
 })
 
@@ -205,7 +218,8 @@ export const PartTable = sqliteTable("part", {
   message_id: text().$type<MessageID>()
     .references(() => MessageTable.id, { onDelete: "cascade" }),
   session_id: text().$type<SessionID>(),
-  data: text({ mode: "json" }).$type<PartData>(),  // text, tool-call, tool-result, etc.
+  // text, tool-call, tool-result, etc.
+  data: text({ mode: "json" }).$type<PartData>(),
   ...Timestamps,
 })
 
@@ -213,11 +227,13 @@ export const TodoTable = sqliteTable("todo", {
   session_id: text().$type<SessionID>()
     .references(() => SessionTable.id, { onDelete: "cascade" }),
   content: text().notNull(),
-  status: text().notNull(),       // "pending", "in_progress", "done"
+  // "pending", "in_progress", "done"
+  status: text().notNull(),
   priority: text().notNull(),
   position: integer().notNull(),
   ...Timestamps,
-})  // composite primary key: (session_id, position)
+// composite primary key: (session_id, position)
+})
 
 export const PermissionTable = sqliteTable("permission", {
   project_id: text().primaryKey()

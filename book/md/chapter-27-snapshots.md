@@ -32,7 +32,9 @@ const track = Effect.fn("Snapshot.track")(function* () {
   if (!(yield* enabled())) return
   // Auto-init on first use
   if (!existed) {
-    yield* git(["init"], { env: { GIT_DIR: gitdir, GIT_WORK_TREE: worktree } })
+    yield* git(
+        ["init"],
+        { env: { GIT_DIR: gitdir, GIT_WORK_TREE: worktree } })
   }
   yield* add()                    // git add .
   const result = yield* git(args(["write-tree"]))
@@ -49,7 +51,8 @@ const track = Effect.fn("Snapshot.track")(function* () {
 ```typescript
 const patch = Effect.fn("Snapshot.patch")(function* (hash: string) {
   yield* add()
-  const result = yield* git(args(["diff", "--no-ext-diff", "--name-only", hash, "--", "."]))
+  const result = yield* git(args(
+    ["diff", "--no-ext-diff", "--name-only", hash, "--", "."]))
   return {
     hash,
     files: result.text.trim().split("\n").filter(Boolean)
@@ -66,7 +69,8 @@ After the step completes, `patch()` diffs the current state against the pre-step
 
 ```typescript
 const restore = Effect.fn("Snapshot.restore")(function* (snapshot: string) {
-  yield* git(args(["read-tree", snapshot]))       // set index to snapshot
+  // set index to snapshot
+  yield* git(args(["read-tree", snapshot]))
   yield* git(args(["checkout-index", "-a", "-f"])) // checkout all files
 })
 ```
@@ -78,7 +82,8 @@ This restores the working tree to exactly the state captured in the snapshot. It
 ## 27.6 revert() -- File-Level Revert
 
 ```typescript
-const revert = Effect.fn("Snapshot.revert")(function* (patches: Snapshot.Patch[]) {
+const revert = Effect.fn("Snapshot.revert")(
+  function* (patches: Snapshot.Patch[]) {
   for (const item of patches) {
     for (const file of item.files) {
       const result = yield* git(args(["checkout", item.hash, "--", file]))

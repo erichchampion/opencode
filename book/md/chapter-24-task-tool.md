@@ -18,7 +18,9 @@ const parameters = z.object({
   prompt: z.string().describe("The task for the agent to perform"),
   subagent_type: z.string().describe("The type of specialized agent"),
   task_id: z.string().describe("Resume a previous task").optional(),
-  command: z.string().describe("The command that triggered this task").optional(),
+  command: z.string()
+    .describe("The command that triggered this task")
+    .optional(),
 })
 ```
 
@@ -33,7 +35,9 @@ During `init()`, the task tool builds a list of available sub-agents:
 ```typescript
 const agents = await Agent.list().then(x => x.filter(a => a.mode !== "primary"))
 const accessibleAgents = caller
-  ? agents.filter(a => PermissionNext.evaluate("task", a.name, caller.permission).action !== "deny")
+  ? agents.filter(
+      a => PermissionNext.evaluate(
+        "task", a.name, caller.permission).action !== "deny")
   : agents
 ```
 
@@ -53,7 +57,8 @@ const session = await Session.create({
     { permission: "todowrite", pattern: "*", action: "deny" },
     { permission: "todoread", pattern: "*", action: "deny" },
     // Prevent recursive task spawning unless the agent explicitly allows it
-    ...(hasTaskPermission ? [] : [{ permission: "task", pattern: "*", action: "deny" }]),
+    ...(hasTaskPermission ? []
+      : [{ permission: "task", pattern: "*", action: "deny" }]),
   ],
 })
 ```

@@ -9,7 +9,8 @@
 `SessionProcessor` in `session/processor.ts` sits between the raw LLM stream and OpenCode's persistent state. It consumes the `fullStream` from `streamText()` and translates each event into database writes, bus events, and state transitions. The processor also handles retries, doom loop detection, and compaction triggers.
 
 ```
-streamText()  -->  fullStream  -->  SessionProcessor.process()  -->  Database + Events
+streamText()  -->  fullStream  -->  SessionProcessor.process()
+    -->  Database + Events
 ```
 
 ---
@@ -121,7 +122,8 @@ The tool lifecycle in the processor:
 Before executing a tool call, the processor checks for repetitive behavior:
 
 ```typescript
-const lastThree = parts.slice(-DOOM_LOOP_THRESHOLD)  // DOOM_LOOP_THRESHOLD = 3
+// DOOM_LOOP_THRESHOLD = 3
+const lastThree = parts.slice(-DOOM_LOOP_THRESHOLD)
 if (lastThree.length === DOOM_LOOP_THRESHOLD &&
     lastThree.every(p => p.type === "tool" &&
       p.tool === value.toolName &&
@@ -162,7 +164,8 @@ When the stream throws an error, the processor classifies it:
 
 ```typescript
 catch (e) {
-  const error = MessageV2.fromError(e, { providerID: input.model.providerID })
+  const error = MessageV2.fromError(
+      e, { providerID: input.model.providerID })
   if (MessageV2.ContextOverflowError.isInstance(error)) {
     needsCompaction = true  // triggers compaction on return
   } else {
@@ -170,7 +173,9 @@ catch (e) {
     if (retry !== undefined) {
       attempt++
       const delay = SessionRetry.delay(attempt, error)
-      SessionStatus.set(sessionID, { type: "retry", attempt, message: retry, next: Date.now() + delay })
+      SessionStatus.set(sessionID, {
+        type: "retry", attempt, message: retry,
+        next: Date.now() + delay })
       await SessionRetry.sleep(delay, input.abort)
       continue  // retry the entire stream
     }

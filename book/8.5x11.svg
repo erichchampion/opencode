@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2550" height="3300" viewBox="0 0 2550 3300">
+<title>Inside OpenCode — cover 8.5 × 11 in</title>
+<defs><linearGradient id="panel" x1="0" y1="2100" x2="2550" y2="3300" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#1e3c72"></stop><stop offset="1" stop-color="#2a5298"></stop></linearGradient>
+<clipPath id="panelClip"><rect x="0" y="2100" width="2550" height="1200"></rect></clipPath></defs>
+<rect width="2550" height="3300" fill="#f7f8fa"></rect>
+<rect x="210" y="200" width="150" height="20" fill="#ff6b42"></rect>
+<text x="400" y="210" dominant-baseline="middle" font-family="ui-monospace, &#39;SF Mono&#39;, Menlo, monospace" font-size="46" letter-spacing="11" fill="#56657f">THE INSIDE SERIES  /  NO. 02</text>
+<text x="210" y="660" font-family="Myriad Pro" font-weight="300" font-size="200" letter-spacing="-4" fill="#56657f">Inside</text>
+<text x="206" y="980" font-family="Myriad Pro" font-weight="700" font-size="322" letter-spacing="-12.9" fill="#14213d">OpenCode</text>
+<text font-family="Myriad Pro" font-weight="300" font-size="88" fill="#3d4c64"><tspan x="210" y="1230">How an AI Coding Agent Works</tspan></text>
+<text x="210" y="1950" font-family="Myriad Pro" font-weight="600" font-size="78" fill="#14213d">Erich Champion</text>
+<text x="2340" y="1939" text-anchor="end" font-family="ui-monospace, &#39;SF Mono&#39;, Menlo, monospace" font-size="40" letter-spacing="7" fill="#6b7a90">33 CH · 8 PARTS · 100% OPEN SOURCE</text>
+<rect x="0" y="2100" width="2550" height="1200" fill="url(#panel)"></rect>
+<g clip-path="url(#panelClip)"><g transform="translate(253.7 2100) scale(1.2766)"><g stroke="#ffffff" stroke-opacity="0.10" stroke-width="2"><line x1="-400" y1="0" x2="2000" y2="0"></line><line x1="-400" y1="100" x2="2000" y2="100"></line><line x1="-400" y1="200" x2="2000" y2="200"></line><line x1="-400" y1="300" x2="2000" y2="300"></line><line x1="-400" y1="400" x2="2000" y2="400"></line><line x1="-400" y1="500" x2="2000" y2="500"></line><line x1="-400" y1="600" x2="2000" y2="600"></line><line x1="-400" y1="700" x2="2000" y2="700"></line><line x1="-400" y1="800" x2="2000" y2="800"></line><line x1="-400" y1="900" x2="2000" y2="900"></line></g>
+    <circle cx="800" cy="470" r="350" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="3"></circle>
+    <circle cx="800" cy="470" r="250" fill="none" stroke="#ffffff" stroke-opacity="0.4" stroke-width="3"></circle>
+    <path d="M 557.4623740530142 227.46237405301417 A 343 343 0 1 1 1138.7771008241323 523.6570215087992" fill="none" stroke="#ff6b42" stroke-width="14"></path>
+    <circle cx="800" cy="470" r="150" fill="#ff6b42"></circle>
+    <circle cx="800" cy="127" r="21" fill="#ffffff"></circle><circle cx="1143" cy="470" r="21" fill="#ffffff"></circle>
+    <circle cx="800" cy="813" r="21" fill="#ffffff" fill-opacity="0.55"></circle><circle cx="457" cy="470" r="21" fill="#ffffff" fill-opacity="0.55"></circle>
+    <text x="130" y="860" font-family="ui-monospace, &#39;SF Mono&#39;, Menlo, monospace" font-size="30" letter-spacing="6" fill="#ffffff" fill-opacity="0.62">THE AGENTIC LOOP</text></g></g>
+</svg>

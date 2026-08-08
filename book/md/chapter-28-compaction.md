@@ -48,7 +48,9 @@ export async function isOverflow(input: {
 
   const reserved =
     config.compaction?.reserved ??
-    Math.min(COMPACTION_BUFFER, ProviderTransform.maxOutputTokens(input.model))
+    Math.min(
+        COMPACTION_BUFFER,
+        ProviderTransform.maxOutputTokens(input.model))
   const usable = input.model.limit.input
     ? input.model.limit.input - reserved
     : context - ProviderTransform.maxOutputTokens(input.model)
@@ -65,9 +67,12 @@ The `COMPACTION_BUFFER` is 20,000 tokens -- space reserved for the model's respo
 Before running full compaction, OpenCode prunes old tool outputs to free context space:
 
 ```typescript
-const PRUNE_MINIMUM = 20_000   // only prune if >20k tokens can be recovered
-const PRUNE_PROTECT = 40_000   // protect the most recent 40k tokens of tool output
-const PRUNE_PROTECTED_TOOLS = ["skill"]  // never prune skill tool outputs
+// only prune if >20k tokens can be recovered
+const PRUNE_MINIMUM = 20_000
+// protect the most recent 40k tokens of tool output
+const PRUNE_PROTECT = 40_000
+// never prune skill tool outputs
+const PRUNE_PROTECTED_TOOLS = ["skill"]
 ```
 
 The algorithm walks backward through messages:
@@ -89,8 +94,8 @@ When compaction runs, it inserts a special part:
   id: PartID.ascending(),
   messageID: userMessage.id,
   sessionID,
-  auto: true,       // true for automatic, false for /compact
-  overflow: false,   // true if triggered by ContextOverflowError
+  auto: true,      // true for automatic, false for /compact
+  overflow: false, // true if triggered by ContextOverflowError
 }
 ```
 

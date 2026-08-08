@@ -14,7 +14,8 @@ OpenCode's CLI (`cli/cmd/`) provides both interactive (TUI) and non-interactive 
 
 ```
 opencode                         # Launch TUI (default)
-opencode "prompt text"           # Non-interactive: send prompt, print response, exit
+# Non-interactive: send prompt, print response, exit
+opencode "prompt text"
 opencode -p "prompt"             # Same as above (explicit flag)
 ```
 

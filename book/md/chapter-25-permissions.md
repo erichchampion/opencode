@@ -16,9 +16,12 @@ Permissions are expressed as rules:
 
 ```typescript
 export const Rule = z.object({
-  permission: z.string(),  // tool name or category (e.g., "bash", "edit", "external_directory")
-  pattern: z.string(),     // wildcard pattern to match against (e.g., "npm install *")
-  action: Action,          // "allow" | "deny" | "ask"
+  // tool name or category (e.g., "bash", "edit", "external_directory")
+  permission: z.string(),
+  // wildcard pattern to match against (e.g., "npm install *")
+  pattern: z.string(),
+  // "allow" | "deny" | "ask"
+  action: Action,
 })
 export const Ruleset = Rule.array()
 ```
@@ -36,7 +39,9 @@ Rules come from multiple sources:
 `Permission.evaluate()` determines the action for a given permission and pattern:
 
 ```typescript
-export function evaluate(permission: string, pattern: string, ...rulesets: Ruleset[]): Rule {
+export function evaluate(
+  permission: string, pattern: string,
+  ...rulesets: Ruleset[]): Rule {
   return evalRule(permission, pattern, ...rulesets)
 }
 ```
@@ -50,9 +55,12 @@ The evaluation uses the `evaluate.ts` module which processes rules with wildcard
 When a tool needs permission and the rules evaluate to "ask":
 
 ```
-Tool.execute() --> ctx.ask() --> Permission.ask() --> Bus.publish(Event.Asked) --> TUI shows prompt
-                                     |                                                    |
-                                  Deferred.await() <-- Permission.reply() <-- User responds
+Tool.execute() --> ctx.ask() --> Permission.ask()
+                                       |
+                                       v
+              Bus.publish(Event.Asked) --> TUI shows prompt
+                                                   |
+Deferred.await() <-- Permission.reply() <-- User responds
 ```
 
 1. The tool calls `ctx.ask()` with a permission name, patterns, and metadata
@@ -96,7 +104,8 @@ Conversely, when the user says "always," all pending requests that now match the
 if (input.reply === "once") return
 for (const [id, item] of pending.entries()) {
   const ok = item.info.patterns.every(
-    (pattern) => evaluate(item.info.permission, pattern, approved).action === "allow"
+    (pattern) => evaluate(
+      item.info.permission, pattern, approved).action === "allow"
   )
   if (ok) yield* Deferred.succeed(item.deferred, undefined)
 }
@@ -143,7 +152,8 @@ The fallback action is `"ask"`, not `"allow"`. If no rule in any ruleset matches
 ```typescript
 // permission/evaluate.ts
 const match = rules.findLast(
-  (rule) => Wildcard.match(permission, rule.permission) && Wildcard.match(pattern, rule.pattern),
+  (rule) => Wildcard.match(permission, rule.permission)
+    && Wildcard.match(pattern, rule.pattern),
 )
 return match ?? { action: "ask", permission, pattern: "*" }
 ```

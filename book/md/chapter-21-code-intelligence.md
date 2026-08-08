@@ -74,7 +74,9 @@ The LSP tool provides direct access to Language Server Protocol operations. Unli
 ### Usage
 
 ```
-lsp({ operation: "goToDefinition", filePath: "src/session/prompt.ts", line: 42, character: 15 })
+lsp({ operation: "goToDefinition",
+      filePath: "src/session/prompt.ts",
+      line: 42, character: 15 })
 ```
 
 Line and character are 1-based (as shown in editors). The tool converts to 0-based for the LSP protocol.

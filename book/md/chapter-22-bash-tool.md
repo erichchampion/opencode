@@ -16,7 +16,9 @@ The bash tool (`tool/bash.ts`, ~270 lines) is one of the most complex tools beca
 parameters: z.object({
   command: z.string().describe("The command to execute"),
   timeout: z.number().describe("Optional timeout in milliseconds").optional(),
-  workdir: z.string().describe("Working directory. Use this instead of 'cd'.").optional(),
+  workdir: z.string()
+    .describe("Working directory. Use this instead of 'cd'.")
+    .optional(),
   description: z.string().describe("Clear, concise description in 5-10 words"),
 })
 ```
@@ -82,7 +84,8 @@ This lets users grant blanket permissions like "always allow `npm install *`" wi
 Before execution, the tool checks if the command touches files outside the project:
 
 ```typescript
-if (["cd", "rm", "cp", "mv", "mkdir", "touch", "chmod", "chown", "cat"].includes(command[0])) {
+if (["cd", "rm", "cp", "mv", "mkdir",
+     "touch", "chmod", "chown", "cat"].includes(command[0])) {
   for (const arg of command.slice(1)) {
     if (arg.startsWith("-")) continue
     const resolved = await fs.realpath(path.resolve(cwd, arg))
@@ -181,9 +184,12 @@ Commands are spawned with `detached: true` on Unix, which creates a new process 
 
 ```typescript
 Shell.killTree(proc) {
-  process.kill(-pid, "SIGTERM")     // Negative PID = kill entire process group
-  await sleep(200)                   // 200ms grace period
-  if (!exited()) process.kill(-pid, "SIGKILL")  // Force kill if still running
+  // Negative PID = kill entire process group
+  process.kill(-pid, "SIGTERM")
+  // 200ms grace period
+  await sleep(200)
+  // Force kill if still running
+  if (!exited()) process.kill(-pid, "SIGKILL")
 }
 ```
 

@@ -20,7 +20,9 @@ The system prompt assembly happens in two places:
 
 ```typescript
 export function provider(model: Provider.Model) {
-  if (model.api.id.includes("gpt-4") || model.api.id.includes("o1") || model.api.id.includes("o3"))
+  if (model.api.id.includes("gpt-4")
+      || model.api.id.includes("o1")
+      || model.api.id.includes("o3"))
     return [PROMPT_BEAST]
   if (model.api.id.includes("gpt")) return [PROMPT_CODEX]
   if (model.api.id.includes("gemini-")) return [PROMPT_GEMINI]
@@ -88,10 +90,15 @@ export async function resolve(messages, filepath, messageID) {
   // Walk from filepath's directory up to the project root
   let current = path.dirname(target)
   while (current.startsWith(root) && current !== root) {
-    const found = await find(current)  // looks for AGENTS.md, CLAUDE.md
-    if (found && !system.has(found) && !already.has(found) && !isClaimed(messageID, found)) {
-      claim(messageID, found)  // prevent duplicate loading
-      results.push({ filepath: found, content: "Instructions from: " + found + "\n" + content })
+    // looks for AGENTS.md, CLAUDE.md
+    const found = await find(current)
+    if (found && !system.has(found) && !already.has(found)
+        && !isClaimed(messageID, found)) {
+      // prevent duplicate loading
+      claim(messageID, found)
+      results.push({
+        filepath: found,
+        content: "Instructions from: " + found + "\n" + content })
     }
     current = path.dirname(current)
   }
