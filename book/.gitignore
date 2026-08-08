@@ -9,8 +9,10 @@ dita/
 *.pdf
 *.log
 
-# DITA-OT plugins (installed locally)
-pdf-theme/
+# DITA-OT plugins. pdf-theme is this book's own customisation of the PDF
+# output and is tracked here: it is the only copy, and install-pdf-theme.sh
+# builds the installed plugin from it. The syntax-highlighting plugin comes
+# from elsewhere and is not ours to keep.
 pdf-theme-syntax-highlight/
 pdf-theme-syntax-highlight.zip
 
